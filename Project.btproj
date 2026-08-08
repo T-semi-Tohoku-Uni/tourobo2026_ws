@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root BTCPP_format="4" project_name="Project">
+    <include path="src/nhk2026_system/config/area/arena_bt.xml"/>
+    <include path="src/nhk2026_system/config/area/forest_bt.xml"/>
+    <include path="src/nhk2026_system/config/area/martial_club_bt.xml"/>
+    <include path="src/nhk2026_system/config/common/bt_node_models.xml"/>
+    <include path="src/nhk2026_system/config/common/bt_rotate.xml"/>
+    <include path="src/nhk2026_system/config/common/bt_vel_tim.xml"/>
+    <include path="src/nhk2026_system/config/common/wait_for_trigger.xml"/>
+    <include path="src/nhk2026_system/config/operation/arm_down_step.xml"/>
+    <include path="src/nhk2026_system/config/operation/arm_front_step.xml"/>
+    <include path="src/nhk2026_system/config/operation/arm_put_shelf.xml"/>
+    <include path="src/nhk2026_system/config/operation/arm_up_step.xml"/>
+    <include path="src/nhk2026_system/config/operation/kfs_stack.xml"/>
+    <include path="src/nhk2026_system/config/video_2nd_bt.xml"/>
+    <!-- Description of Node Models (used by Groot) -->
+    <TreeNodesModel>
+        <SubTree ID="WaitForArUco">
+            <input_port name="id"/>
+        </SubTree>
+        <Action ID="follow_route" editable="true"/>
+        <Action ID="generate_route" editable="true">
+            <input_port name="x"/>
+            <input_port name="y"/>
+            <input_port name="theta" default="0.0"/>
+        </Action>
+        <Action ID="linear_path" editable="true">
+            <input_port name="x"/>
+            <input_port name="y"/>
+            <input_port name="is_return"/>
+        </Action>
+        <Action ID="move_arm" editable="true">
+            <input_port name="y"/>
+            <input_port name="z"/>
+            <input_port name="roll"/>
+            <input_port name="max_speed"/>
+            <input_port name="max_acc"/>
+        </Action>
+        <Action ID="pub_cmd_vel" editable="true">
+            <input_port name="vx"/>
+            <input_port name="vy"/>
+            <input_port name="omega"/>
+        </Action>
+        <Action ID="pub_step_legs" editable="true">
+            <input_port name="angles"/>
+        </Action>
+        <Action ID="reset_mcl" editable="true">
+            <input_port name="x"/>
+            <input_port name="y"/>
+            <input_port name="z"/>
+            <input_port name="theta"/>
+        </Action>
+        <SubTree ID="rotate">
+            <input_port name="target_theta"/>
+            <input_port name="omega"/>
+        </SubTree>
+        <Action ID="rotate_sub" editable="true">
+            <input_port name="target_theta"/>
+            <input_port name="tolerance" default="0.05"/>
+        </Action>
+        <Action ID="service_vacuum" editable="true">
+            <input_port name="value"/>
+        </Action>
+        <Action ID="service_vacuum_stack" editable="true">
+            <input_port name="value"/>
+        </Action>
+        <Action ID="step_move" editable="true">
+            <input_port name="command"/>
+        </Action>
+        <Action ID="sub_aruco_pose" editable="true">
+            <input_port name="id"/>
+        </Action>
+        <Action ID="takano_hand" editable="true">
+            <input_port name="step"/>
+            <input_port name="pos" default="5.0"/>
+        </Action>
+        <Action ID="trigger_topic" editable="true"/>
+        <SubTree ID="vel_tim">
+            <input_port name="vx"/>
+            <input_port name="vy"/>
+            <input_port name="omega"/>
+            <input_port name="pub_msec"/>
+        </SubTree>
+        <Action ID="waypoint" editable="true">
+            <input_port name="x"/>
+            <input_port name="y"/>
+        </Action>
+    </TreeNodesModel>
+</root>

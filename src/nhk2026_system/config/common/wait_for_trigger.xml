@@ -1,0 +1,12 @@
+<root BTCPP_format="4">
+  <include path="../common/bt_node_models.xml"/>
+  <BehaviorTree ID="WaitForTrigger">
+    <ForceSuccess>
+      <KeepRunningUntilFailure>
+        <Inverter>
+          <trigger_topic />
+        </Inverter>
+      </KeepRunningUntilFailure>
+    </ForceSuccess>
+  </BehaviorTree>
+</root>
