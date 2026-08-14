@@ -57,7 +57,7 @@ def _ensure_can0_up(context, *args, **kwargs):
 def generate_launch_description():
     # パス設定
     pkg_share_bridge = get_package_share_directory('nhk2026_bridge')
-    canid_file = os.path.join(pkg_share_bridge, 'config', 'step_leg_canbridge.yml')
+    canid_file = os.path.join(pkg_share_bridge, 'config', 'controller_canbridge.yml')
 
     ld = LaunchDescription()
     
