@@ -31,7 +31,18 @@ add_executable(joy_vel_converter
   src/joy2vel.cpp
 )
 
+add_executable(joy_converter
+  src/joy_converter.cpp
+)
+
 ament_target_dependencies(joy_vel_converter
+  rclcpp
+  rclcpp_lifecycle
+  sensor_msgs
+  geometry_msgs
+)
+
+ament_target_dependencies(joy_converter
   rclcpp
   rclcpp_lifecycle
   sensor_msgs
@@ -40,6 +51,11 @@ ament_target_dependencies(joy_vel_converter
 
 install(
   TARGETS joy_vel_converter
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS
+  joy_converter
   DESTINATION lib/${PROJECT_NAME}
 )
 
