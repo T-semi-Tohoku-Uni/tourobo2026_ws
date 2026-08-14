@@ -67,7 +67,7 @@ def _ensure_can0_up(context, *args, **kwargs):
 def generate_launch_description():
     pkg_share = get_package_share_directory('nhk2026_bridge')
     canid_file = os.path.join(pkg_share, 'config', 'tourobo.yml')
-    joy_file = os.path.join(pkg_share, 'config', 'joy2vel.yml')
+    joy_file = os.path.join(pkg_share, 'config', 'joy_converter.yml')
 
     name_space = ''
     ld = LaunchDescription()
@@ -123,8 +123,8 @@ def generate_launch_description():
     # joy2vel node
     joy2velnode = LifecycleNode(
         package='nhk2026_bridge',
-        executable='joy_vel_converter',
-        name='joy_vel_converter',
+        executable='joy_converter',
+        name='joy_converter',
         namespace=name_space,
         parameters=[joy_file],
         output='screen',
