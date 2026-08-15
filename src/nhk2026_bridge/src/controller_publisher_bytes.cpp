@@ -14,7 +14,7 @@ public:
 private:
   void on_timer() {
     // 例: vx = 100 mm/s -> 0x0064 -> [0x64,0x00], 他は0, pid_mode=1, ctrl=0
-    std::vector<uint8_t> data = {0x64,0x00, 0x00,0x00, 0x00,0x00, 0x01,0x00};
+    std::vector<uint8_t> data = {0x64,0x00, 0x00,0x00, 0x00,0x00, 0x00,0x00};
     auto msg = std::make_shared<std_msgs::msg::UInt8MultiArray>();
     msg->data = data;
     pub0_->publish(*msg);

@@ -14,7 +14,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(backward_ros REQUIRED)
+find_package(backward_ros QUIET)
 
 include_directories(
   include
@@ -97,6 +97,21 @@ target_link_libraries(nhk2026_canbridge
 
 install(
   TARGETS nhk2026_canbridge
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+# controller byte publisher (publish UInt8MultiArray to motor topics)
+add_executable(controller_byte_publisher
+  src/controller_publisher_bytes.cpp
+)
+
+ament_target_dependencies(controller_byte_publisher
+  rclcpp
+  std_msgs
+)
+
+install(
+  TARGETS controller_byte_publisher
   DESTINATION lib/${PROJECT_NAME}
 )
 
