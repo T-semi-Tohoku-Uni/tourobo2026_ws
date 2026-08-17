@@ -9,6 +9,7 @@
 
 #include "sensor_msgs/msg/joy.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "std_msgs/msg/byte_multi_array.hpp"
 
 # include <bits/stdc++.h>
 
@@ -57,6 +58,9 @@ private:
     rclcpp_lifecycle::LifecyclePublisher<
         geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
 
+    rclcpp_lifecycle::LifecyclePublisher<
+        std_msgs::msg::ByteMultiArray>::SharedPtr button_publisher_;
+
     rclcpp::Subscription<
         sensor_msgs::msg::Joy>::SharedPtr joy_subscriber_;
 
@@ -67,6 +71,7 @@ private:
     // Topic names
     std::string input_topic_;
     std::string output_topic_;
+    std::string button_output_topic_;
 
     // Maximum velocities
     double max_vx_;

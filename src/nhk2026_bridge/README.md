@@ -44,5 +44,22 @@ youruser ALL=(root) NOPASSWD: /usr/sbin/ip link set can0 down
 - int 系: `std_msgs/msg/Int32MultiArray`
 - bytes 系: `std_msgs/msg/ByteMultiArray`
 
+### Joy のボタンを CAN へ送る（`tourobo.launch.py`）
+`joy_converter` は `joy_buttons` (`std_msgs/msg/ByteMultiArray`) を publish します。
+`tourobo.yml` ではこのトピックを CAN ID `0x104` に割り当て済みです。
+
+- CAN payload の byte `i` は `sensor_msgs/msg/Joy.buttons[i]` に対応します。
+- 値は離されているとき `0`、押されているとき `1` です。
+- `ByteMultiArray` の長さが CAN FD の最大 64 byte を超えると送信できません。
+
+CAN から ROS へ現在出している内容は、利用する設定ファイルの `pub_*_bridge_topic` と
+`pub_*_bridge_canid` の組です。`tourobo.yml` はすべてコメントアウトされているため、
+標準の `tourobo.launch.py` では CAN → ROS のデータは publish されません。CAN → Joy の変換もありません。
+
+従来から Joy → CAN に送られているのは `cmd_vel` のみです。`joy_converter.yml` の既定値では
+Joy の axes `[0, 1, 3]` をそれぞれ `linear.x`、`linear.y`、`angular.z` に変換し、
+`tourobo.yml` の CAN ID `0x100` で送信します。payload はこの順の 32-bit float 3個（計12 byte、
+ビッグエンディアン）です。ボタンは今回の `0x104` 追加前には CAN へ送られていませんでした。
+
 ### 運用上の注意
 - Active 状態ではパラメータ変更は拒否されます。変更する場合は `deactivate` してから再設定してください。

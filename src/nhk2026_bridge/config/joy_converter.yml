@@ -3,6 +3,8 @@
 
     input_topic: "joy"
     output_topic: "cmd_vel"
+    # Joy.buttons を 0/1 の ByteMultiArray として publish するトピック
+    button_output_topic: "joy_buttons"
 
     # 最大速度
     max_vx: 2.0

@@ -68,6 +68,7 @@ ament_target_dependencies(test_canbridge
   rclcpp
   rclcpp_lifecycle
   geometry_msgs
+  std_msgs
 )
 
 target_link_libraries(test_canbridge

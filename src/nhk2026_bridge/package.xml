@@ -17,8 +17,7 @@
   <depend>rclcpp_lifecycle</depend>
   <depend>sensor_msgs</depend>
   <depend>geometry_msgs</depend>
-
-  <exec_depend>std_msgs</exec_depend>
+  <depend>std_msgs</depend>
 
   <exec_depend>rosbridge_suite</exec_depend>
 

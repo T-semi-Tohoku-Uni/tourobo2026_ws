@@ -16,6 +16,8 @@ JoyConverter::JoyConverter()
     this->declare_parameter<std::string>(
         "output_topic", "cmd_vel");
 
+    this->declare_parameter<std::string>(
+        "button_output_topic", "joy_buttons");
 
     // Maximum velocity
     this->declare_parameter<double>(
@@ -66,6 +68,9 @@ JoyConverter::JoyConverter()
 
     this->output_topic_ =
         this->get_parameter("output_topic").as_string();
+
+    this->button_output_topic_ =
+        this->get_parameter("button_output_topic").as_string();
 
 
     this->max_vx_ =
@@ -134,6 +139,13 @@ JoyConverter::on_configure(
         );
 
 
+    this->button_publisher_ =
+        this->create_publisher<std_msgs::msg::ByteMultiArray>(
+            this->button_output_topic_,
+            rclcpp::SystemDefaultsQoS()
+        );
+
+
     // Subscriber
     this->joy_subscriber_ =
         this->create_subscription<sensor_msgs::msg::Joy>(
@@ -157,6 +169,11 @@ JoyConverter::on_configure(
         this->get_logger(),
         "output topic : %s",
         this->output_topic_.c_str());
+
+    RCLCPP_INFO(
+        this->get_logger(),
+        "button topic : %s",
+        this->button_output_topic_.c_str());
 
     RCLCPP_INFO(
         this->get_logger(),
@@ -190,6 +207,7 @@ JoyConverter::on_activate(
     const rclcpp_lifecycle::State & state)
 {
     this->cmd_vel_publisher_->on_activate();
+    this->button_publisher_->on_activate();
 
 
     RCLCPP_INFO(
@@ -219,6 +237,10 @@ JoyConverter::on_deactivate(
         this->cmd_vel_publisher_->on_deactivate();
     }
 
+    if (this->button_publisher_) {
+        this->button_publisher_->on_deactivate();
+    }
+
     RCLCPP_INFO(
         this->get_logger(),
         "joy_converter deactivated");
@@ -239,6 +261,7 @@ JoyConverter::on_cleanup(
 {
     this->joy_subscriber_.reset();
     this->cmd_vel_publisher_.reset();
+    this->button_publisher_.reset();
 
 
     RCLCPP_INFO(
@@ -279,6 +302,7 @@ JoyConverter::on_shutdown(
 
     this->joy_subscriber_.reset();
     this->cmd_vel_publisher_.reset();
+    this->button_publisher_.reset();
 
 
     RCLCPP_INFO(
@@ -295,14 +319,12 @@ JoyConverter::on_shutdown(
 void JoyConverter::joy_callback(
     const sensor_msgs::msg::Joy::SharedPtr msg)
 {
-    if (!this->cmd_vel_publisher_) {
+    if (!this->cmd_vel_publisher_ || !this->button_publisher_ ||
+        !this->cmd_vel_publisher_->is_activated() ||
+        !this->button_publisher_->is_activated()) {
+
         return;
     }
-
-    if (!this->cmd_vel_publisher_->is_activated()) {
-        return;
-    }
-
 
     // Update last reception time
     this->last_joy_time_ = this->now();
@@ -365,6 +387,15 @@ void JoyConverter::joy_callback(
 
     // Publish
     this->cmd_vel_publisher_->publish(cmd_vel);
+
+    // Preserve the Joy button ordering: button i is CAN payload byte i.
+    // Values are normalized to 0 (released) or 1 (pressed).
+    std_msgs::msg::ByteMultiArray buttons;
+    buttons.data.reserve(msg->buttons.size());
+    for (const int32_t button : msg->buttons) {
+        buttons.data.push_back(button == 0 ? 0U : 1U);
+    }
+    this->button_publisher_->publish(buttons);
 }
 
 
@@ -463,7 +494,15 @@ JoyConverter::parameters_callback(
                 param.as_string();
         }
 
+        else if (name == "button_output_topic" &&
+                 param.get_type() ==
+                 rclcpp::ParameterType::PARAMETER_STRING)
+        {
+            this->button_output_topic_ =
+                param.as_string();
+        }
 
+        
         else if (name == "max_vx" &&
                  param.get_type() ==
                  rclcpp::ParameterType::PARAMETER_DOUBLE)
