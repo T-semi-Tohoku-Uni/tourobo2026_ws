@@ -19,6 +19,13 @@ JoyConverter::JoyConverter()
     this->declare_parameter<std::string>(
         "button_output_topic", "joy_buttons");
 
+    this->declare_parameter<std::vector<int64_t>>(
+        "button_pressed_values", std::vector<int64_t>{});
+
+    this->declare_parameter<std::vector<int64_t>>(
+        "button_released_values", std::vector<int64_t>{});
+
+
     // Maximum velocity
     this->declare_parameter<double>(
         "max_vx", 2.0);
@@ -71,6 +78,12 @@ JoyConverter::JoyConverter()
 
     this->button_output_topic_ =
         this->get_parameter("button_output_topic").as_string();
+
+    this->button_pressed_values_ =
+        this->get_parameter("button_pressed_values").as_integer_array();
+
+    this->button_released_values_ =
+        this->get_parameter("button_released_values").as_integer_array();
 
 
     this->max_vx_ =
@@ -389,11 +402,16 @@ void JoyConverter::joy_callback(
     this->cmd_vel_publisher_->publish(cmd_vel);
 
     // Preserve the Joy button ordering: button i is CAN payload int32 i.
-    // Values are normalized to 0 (released) or 1 (pressed).
+    // If a parameter entry is absent, retain the legacy 0 (released) / 1 (pressed) value.
     std_msgs::msg::Int32MultiArray buttons;
     buttons.data.reserve(msg->buttons.size());
-    for (const int32_t button : msg->buttons) {
-        buttons.data.push_back(button == 0 ? 0 : 1);
+    for (size_t i = 0; i < msg->buttons.size(); ++i) {
+        const bool pressed = msg->buttons[i] != 0;
+        const std::vector<int64_t> &values =
+            pressed ? this->button_pressed_values_ : this->button_released_values_;
+
+        const int64_t value = i < values.size() ? values[i] : (pressed ? 1 : 0);
+        buttons.data.push_back(static_cast<int32_t>(value));
     }
     this->button_publisher_->publish(buttons);
 }
@@ -502,6 +520,21 @@ JoyConverter::parameters_callback(
                 param.as_string();
         }
 
+        else if (name == "button_pressed_values" &&
+                 param.get_type() ==
+                 rclcpp::ParameterType::PARAMETER_INTEGER_ARRAY)
+        {
+            this->button_pressed_values_ =
+                param.as_integer_array();
+        }
+
+        else if (name == "button_released_values" &&
+                 param.get_type() ==
+                 rclcpp::ParameterType::PARAMETER_INTEGER_ARRAY)
+        {
+            this->button_released_values_ =
+                param.as_integer_array();
+        }
         
         else if (name == "max_vx" &&
                  param.get_type() ==

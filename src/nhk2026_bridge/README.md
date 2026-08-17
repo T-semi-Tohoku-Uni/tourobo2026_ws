@@ -49,8 +49,13 @@ youruser ALL=(root) NOPASSWD: /usr/sbin/ip link set can0 down
 `tourobo.yml` ではこのトピックを CAN ID `0x104` に割り当て済みです。
 
 - CAN payload の int32 `i` は `sensor_msgs/msg/Joy.buttons[i]` に対応します。
-- 値は離されているとき `0`、押されているとき `1` です。
+- `button_pressed_values[i]` と `button_released_values[i]` で、ボタン `i` の値を設定できます。
+- 配列が空、または `i` 番目の要素がない場合は、従来どおり離されているとき `0`、押されているとき `1` です。
 - 各値は32-bit整数・ビッグエンディアンで送るため、CAN FD では最大16ボタンまで送信できます。
+
+設定例: `button_pressed_values: [10, 20, 30]` と
+`button_released_values: [-10, -20, -30]` のとき、Joy の `[0, 1, 1]` は
+CAN payload の整数配列 `[-10, 20, 30]` として送信されます。
 
 CAN から ROS へ現在出している内容は、利用する設定ファイルの `pub_*_bridge_topic` と
 `pub_*_bridge_canid` の組です。`tourobo.yml` はすべてコメントアウトされているため、

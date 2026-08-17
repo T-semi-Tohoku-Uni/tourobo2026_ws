@@ -73,6 +73,10 @@ private:
     std::string output_topic_;
     std::string button_output_topic_;
 
+    // Per-button CAN values. An unset index keeps the legacy 0/1 value.
+    std::vector<int64_t> button_pressed_values_;
+    std::vector<int64_t> button_released_values_;
+
     // Maximum velocities
     double max_vx_;
     double max_vy_;
