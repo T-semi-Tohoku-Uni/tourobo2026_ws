@@ -45,12 +45,12 @@ youruser ALL=(root) NOPASSWD: /usr/sbin/ip link set can0 down
 - bytes 系: `std_msgs/msg/ByteMultiArray`
 
 ### Joy のボタンを CAN へ送る（`tourobo.launch.py`）
-`joy_converter` は `joy_buttons` (`std_msgs/msg/ByteMultiArray`) を publish します。
+`joy_converter` は `joy_buttons` (`std_msgs/msg/Int32MultiArray`) を publish します。
 `tourobo.yml` ではこのトピックを CAN ID `0x104` に割り当て済みです。
 
-- CAN payload の byte `i` は `sensor_msgs/msg/Joy.buttons[i]` に対応します。
+- CAN payload の int32 `i` は `sensor_msgs/msg/Joy.buttons[i]` に対応します。
 - 値は離されているとき `0`、押されているとき `1` です。
-- `ByteMultiArray` の長さが CAN FD の最大 64 byte を超えると送信できません。
+- 各値は32-bit整数・ビッグエンディアンで送るため、CAN FD では最大16ボタンまで送信できます。
 
 CAN から ROS へ現在出している内容は、利用する設定ファイルの `pub_*_bridge_topic` と
 `pub_*_bridge_canid` の組です。`tourobo.yml` はすべてコメントアウトされているため、

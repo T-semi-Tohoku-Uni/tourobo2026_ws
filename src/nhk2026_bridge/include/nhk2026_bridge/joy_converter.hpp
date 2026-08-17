@@ -9,7 +9,7 @@
 
 #include "sensor_msgs/msg/joy.hpp"
 #include "geometry_msgs/msg/twist.hpp"
-#include "std_msgs/msg/byte_multi_array.hpp"
+#include "std_msgs/msg/int32_multi_array.hpp"
 
 # include <bits/stdc++.h>
 
@@ -59,7 +59,7 @@ private:
         geometry_msgs::msg::Twist>::SharedPtr cmd_vel_publisher_;
 
     rclcpp_lifecycle::LifecyclePublisher<
-        std_msgs::msg::ByteMultiArray>::SharedPtr button_publisher_;
+        std_msgs::msg::Int32MultiArray>::SharedPtr button_publisher_;
 
     rclcpp::Subscription<
         sensor_msgs::msg::Joy>::SharedPtr joy_subscriber_;

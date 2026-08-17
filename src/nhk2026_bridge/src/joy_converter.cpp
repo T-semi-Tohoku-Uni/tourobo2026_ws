@@ -140,7 +140,7 @@ JoyConverter::on_configure(
 
 
     this->button_publisher_ =
-        this->create_publisher<std_msgs::msg::ByteMultiArray>(
+        this->create_publisher<std_msgs::msg::Int32MultiArray>(
             this->button_output_topic_,
             rclcpp::SystemDefaultsQoS()
         );
@@ -388,12 +388,12 @@ void JoyConverter::joy_callback(
     // Publish
     this->cmd_vel_publisher_->publish(cmd_vel);
 
-    // Preserve the Joy button ordering: button i is CAN payload byte i.
+    // Preserve the Joy button ordering: button i is CAN payload int32 i.
     // Values are normalized to 0 (released) or 1 (pressed).
-    std_msgs::msg::ByteMultiArray buttons;
+    std_msgs::msg::Int32MultiArray buttons;
     buttons.data.reserve(msg->buttons.size());
     for (const int32_t button : msg->buttons) {
-        buttons.data.push_back(button == 0 ? 0U : 1U);
+        buttons.data.push_back(button == 0 ? 0 : 1);
     }
     this->button_publisher_->publish(buttons);
 }
