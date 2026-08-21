@@ -14,7 +14,6 @@ find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(lifecycle_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
-find_package(backward_ros REQUIRED)
 
 include_directories(
   include

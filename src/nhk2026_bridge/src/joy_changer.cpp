@@ -126,7 +126,7 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
     air_cylinder |= button_pressed(*joy, kCreateButton) << 2;
     air_cylinder |= button_pressed(*joy, kOptionButton) << 3;
     std_msgs::msg::ByteMultiArray air_cylinder_msg;
-    air_cylinder_msg.data = {static_cast<int8_t>(air_cylinder)};
+    air_cylinder_msg.data = {air_cylinder};
 
     const bool l1 = button_pressed(*joy, kL1Button);
     const bool r1 = button_pressed(*joy, kR1Button);
