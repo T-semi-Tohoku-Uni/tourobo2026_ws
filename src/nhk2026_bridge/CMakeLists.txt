@@ -43,6 +43,23 @@ install(
   DESTINATION lib/${PROJECT_NAME}
 )
 
+# joy_changer
+add_executable(joy_changer
+  src/joy_changer.cpp
+)
+
+ament_target_dependencies(joy_changer
+  rclcpp
+  rclcpp_lifecycle
+  sensor_msgs
+  std_msgs
+)
+
+install(
+  TARGETS joy_changer
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 # test bridge
 add_executable(test_canbridge
   src/test_canbridge.cpp

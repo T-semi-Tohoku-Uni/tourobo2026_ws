@@ -2,6 +2,11 @@
   ros__parameters:
     ifname: "can0"
 
+    # joy_changer の出力上限値
+    maxhand_rotation: 0
+    maxball_holder: 0
+    max_ejectionrpm: 0
+
     # pub_float_bridge_topic: ["motor_feedback", "motor_step_feedback","quaternion_feedback","takano_hand_feedback","takano_holder_feedback"]
     # pub_float_bridge_canid: [0x300, 0x301, 0x102, 0x302, 0x303]
     # pub_int_bridge_topic: ["onedlidar","feedback_type"] 
@@ -11,10 +16,11 @@
 
     # sub_float_bridge_topic: ["j1", "j2", "j3", "step_legs", "leg_robomas", "takano_hand", "takano_holder"]
     # sub_float_bridge_canid: [0x201, 0x202, 0x203, 0x211, 0x214, 0x220, 0x221]
-    # sub_int_bridge_topic: ["vacuum_device", "vacuum_stack_device"]
-    # sub_int_bridge_canid: [0x500, 0x501]
-    # # sub_bytes_bridge_topic: ["test_b_s"]
-    # # sub_bytes_bridge_canid: [0x405]
+    # CAN ID が決まり次第、以下のコメントを外して対応する ID を設定する
+    # sub_int_bridge_topic: ["robomasu", "ejection"]
+    # sub_int_bridge_canid: [0x000, 0x000]
+    # sub_bytes_bridge_topic: ["air_cylinder"]
+    # sub_bytes_bridge_canid: [0x000]
 
     add_cmd_vel: true
     cmd_vel_canid: 0x100        # add_cmd_velがfalseの場合無視

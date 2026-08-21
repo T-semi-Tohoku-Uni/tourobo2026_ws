@@ -166,6 +166,52 @@ def generate_launch_description():
     ld.add_action(joy2vel_converter_configure_event_handler)
     ld.add_action(joy2vel_converter_activate_event_handler)
 
+    # joy_changer node
+    joy_changer_node = LifecycleNode(
+        package='nhk2026_bridge',
+        executable='joy_changer',
+        name='joy_changer',
+        namespace=name_space,
+        parameters=[canid_file],
+        output='screen',
+        emulate_tty=True,
+    )
+
+    ld.add_action(joy_changer_node)
+
+    joy_changer_configure_event_handler = RegisterEventHandler(
+        OnProcessStart(
+            target_action=joy_changer_node,
+            on_start=[
+                EmitEvent(
+                    event=ChangeState(
+                        lifecycle_node_matcher=launch.events.matches_action(joy_changer_node),
+                        transition_id=lifecycle_msgs.msg.Transition.TRANSITION_CONFIGURE,
+                    )
+                )
+            ]
+        )
+    )
+
+    joy_changer_activate_event_handler = RegisterEventHandler(
+        OnStateTransition(
+            target_lifecycle_node=joy_changer_node,
+            start_state='configuring',
+            goal_state='inactive',
+            entities=[
+                EmitEvent(
+                    event=ChangeState(
+                        lifecycle_node_matcher=launch.events.matches_action(joy_changer_node),
+                        transition_id=lifecycle_msgs.msg.Transition.TRANSITION_ACTIVATE,
+                    )
+                )
+            ]
+        )
+    )
+
+    ld.add_action(joy_changer_configure_event_handler)
+    ld.add_action(joy_changer_activate_event_handler)
+
     joy_node = Node(
         package='joy',
         executable='joy_node',
