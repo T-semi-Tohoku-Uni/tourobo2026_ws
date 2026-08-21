@@ -3,9 +3,9 @@
     ifname: "can0"
 
     # joy_changer の出力上限値
-    maxhand_rotation: 20
-    minhand_rotation: -70
-    hand_rotation_speed: 10.0
+    maxhand_rotation: 70
+    minhand_rotation: -90
+    hand_rotation_speed: 90.0
     maxball_holder: 10
     max_ejectionrpm: 10
 
