@@ -38,19 +38,25 @@ JoyChanger::JoyChanger()
     hand_rotation_(0.0),
     has_last_joy_stamp_(false),
     ballHolder_max_(0),
-    min_ejectionrpm_(0),
+    ballHolder_min_(0),
+    ballHolder_speed_(0.0),
+    ballHolder_(0.0),
     max_ejectionrpm_(0)
 {
     this->declare_parameter<int>("handRotation_max", 20);
     this->declare_parameter<int>("handRotation_min", -70);
     this->declare_parameter<double>("handRotation_speed", 0.0);
     this->declare_parameter<int>("ballHolder_max", 0);
+    this->declare_parameter<int>("ballHolder_min", 0);
+    this->declare_parameter<double>("ballHolder_speed", 0.0);
     this->declare_parameter<int>("max_ejectionrpm", 0);
 
     handRotation_max_ = this->get_parameter("handRotation_max").as_int();
     handRotation_min_ = this->get_parameter("handRotation_min").as_int();
     handRotation_speed_ = this->get_parameter("handRotation_speed").as_double();
     ballHolder_max_ = this->get_parameter("ballHolder_max").as_int();
+    ballHolder_min_ = this->get_parameter("ballHolder_min").as_int();
+    ballHolder_speed_ = this->get_parameter("ballHolder_speed").as_double();
     max_ejectionrpm_ = this->get_parameter("max_ejectionrpm").as_int();
 
     parameter_callback_handle_ = this->add_on_set_parameters_callback(
@@ -142,11 +148,13 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
     const bool l1 = button_pressed(*joy, kL1Button);
     const bool r1 = button_pressed(*joy, kR1Button);
     const int32_t hand_direction = l1 == r1 ? 0 : (l1 ? 1 : -1);
+    const int32_t ballHolder_direction = axis_direction(*joy, kDpadVerticalAxis);
     const rclcpp::Time joy_stamp(joy->header.stamp);
     if (has_last_joy_stamp_) {
         const double elapsed_seconds = (joy_stamp - last_joy_stamp_).seconds();
         if (elapsed_seconds > 0.0) {
             hand_rotation_ += hand_direction * handRotation_speed_ * elapsed_seconds;
+            ballHolder_ += ballHolder_direction * ballHolder_speed_ * elapsed_seconds;
         }
     }
     last_joy_stamp_ = joy_stamp;
@@ -157,10 +165,17 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
         static_cast<double>(handRotation_min_), static_cast<double>(handRotation_max_));
     hand_rotation_ = std::clamp(hand_rotation_, hand_rotation_min, hand_rotation_max);
 
+    const double ballHolder_min = std::min(
+        static_cast<double>(ballHolder_min_), static_cast<double>(ballHolder_max_));
+    const double ballHolder_max = std::max(
+        static_cast<double>(ballHolder_min_), static_cast<double>(ballHolder_max_));
+    ballHolder_ = std::clamp(ballHolder_, ballHolder_min, ballHolder_max);
+
     std_msgs::msg::Int32MultiArray robomasu_msg;
     robomasu_msg.data = {
         static_cast<int32_t>(hand_rotation_),
-        axis_direction(*joy, kDpadVerticalAxis) * ballHolder_max_};
+        static_cast<int32_t>(ballHolder_)
+    };
 
     std_msgs::msg::Int32MultiArray ejection_msg;
     ejection_msg.data = {button_pressed(*joy, kTriangleButton) ? max_ejectionrpm_ : 0};
@@ -203,7 +218,18 @@ rcl_interfaces::msg::SetParametersResult JoyChanger::parameters_callback(
                 continue;
             }
             ballHolder_max_ = parameter.as_int();
-        } else if (parameter.get_name() == "max_ejectionrpm") {
+        } else if (parameter.get_name() == "ballHolder_min") {
+            if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
+                continue;
+            }
+            ballHolder_min_ = parameter.as_int();
+        } else if (parameter.get_name() == "ballHolder_speed") {
+            if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE || parameter.as_double() < 0.0) {
+                continue;
+            }
+            ballHolder_speed_ = parameter.as_double();
+        }
+        else if (parameter.get_name() == "max_ejectionrpm") {
             if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
                 continue;
             }

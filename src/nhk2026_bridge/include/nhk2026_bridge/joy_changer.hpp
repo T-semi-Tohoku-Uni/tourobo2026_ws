@@ -44,6 +44,9 @@ private:
     rclcpp::Time last_joy_stamp_;
     bool has_last_joy_stamp_;
     int32_t ballHolder_max_;
+    int32_t ballHolder_min_;
+    double ballHolder_speed_;
+    double ballHolder_;
     int32_t max_ejectionrpm_;
     OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;
 };
