@@ -3,12 +3,12 @@
     ifname: "can0"
 
     # joy_changer の出力上限値
-    handRotation_max: 70
-    handRotation_min: -90
-    handRotation_speed: 90.0
-    ballHolder_max: 10
-    ballHolder_min: 0
-    ballHolder_speed: 1.0
+    handRotation_max: 120
+    handRotation_min: -170
+    handRotation_speed: 120.0
+    ballHolder_max: 0
+    ballHolder_min: -834
+    ballHolder_speed: 200.0
     max_ejectionrpm: 10
 
     # pub_float_bridge_topic: ["motor_feedback", "motor_step_feedback","quaternion_feedback","takano_hand_feedback","takano_holder_feedback"]
@@ -21,8 +21,8 @@
     # sub_float_bridge_topic: ["j1", "j2", "j3", "step_legs", "leg_robomas", "takano_hand", "takano_holder"]
     # sub_float_bridge_canid: [0x201, 0x202, 0x203, 0x211, 0x214, 0x220, 0x221]
     # CAN ID が決まり次第、以下のコメントを外して対応する ID を設定する
-    sub_int_bridge_topic: ["robomasu", "ejection"]
-    sub_int_bridge_canid: [0x230, 0x130]
+    sub_int_bridge_topic: ["robomasu", "ejection", "holder_servo"]
+    sub_int_bridge_canid: [0x230, 0x130, 0x401]
     sub_bytes_bridge_topic: ["air_cylinder"]
     sub_bytes_bridge_canid: [0x104]
 

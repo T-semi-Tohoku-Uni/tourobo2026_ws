@@ -15,6 +15,12 @@ constexpr size_t kR1Button = 5;
 constexpr size_t kCreateButton = 8;
 constexpr size_t kOptionButton = 9;
 constexpr size_t kDpadVerticalAxis = 7;
+constexpr double kToggleDebounceSeconds = 0.1;
+
+constexpr size_t kAirCylinderCircle = 0;
+constexpr size_t kAirCylinderCross = 1;
+constexpr size_t kHolderServoCreate = 2;
+constexpr size_t kHolderServoOption = 3;
 
 bool button_pressed(const sensor_msgs::msg::Joy & joy, size_t index)
 {
@@ -41,7 +47,11 @@ JoyChanger::JoyChanger()
     ballHolder_min_(0),
     ballHolder_speed_(0.0),
     ballHolder_(0.0),
-    max_ejectionrpm_(0)
+    max_ejectionrpm_(0),
+    air_cylinder_state_(0),
+    holder_servo_state_(0),
+    button_was_pressed_{false, false, false, false},
+    has_button_release_stamp_{false, false, false, false}
 {
     this->declare_parameter<int>("handRotation_max", 20);
     this->declare_parameter<int>("handRotation_min", -70);
@@ -67,6 +77,8 @@ JoyChanger::CallbackReturn JoyChanger::on_configure(const rclcpp_lifecycle::Stat
 {
     air_cylinder_publisher_ = this->create_publisher<std_msgs::msg::ByteMultiArray>(
         "air_cylinder", rclcpp::SystemDefaultsQoS());
+    holder_servo_publisher_ = this->create_publisher<std_msgs::msg::Int32MultiArray>(
+        "holder_servo", rclcpp::SystemDefaultsQoS());
     robomasu_publisher_ = this->create_publisher<std_msgs::msg::Int32MultiArray>(
         "robomasu", rclcpp::SystemDefaultsQoS());
     ejection_publisher_ = this->create_publisher<std_msgs::msg::Int32MultiArray>(
@@ -83,6 +95,7 @@ JoyChanger::CallbackReturn JoyChanger::on_activate(const rclcpp_lifecycle::State
 {
     has_last_joy_stamp_ = false;
     air_cylinder_publisher_->on_activate();
+    holder_servo_publisher_->on_activate();
     robomasu_publisher_->on_activate();
     ejection_publisher_->on_activate();
     RCLCPP_INFO(get_logger(), "on_activate() called. state: id=%u, label=%s",
@@ -94,6 +107,7 @@ JoyChanger::CallbackReturn JoyChanger::on_deactivate(const rclcpp_lifecycle::Sta
 {
     has_last_joy_stamp_ = false;
     air_cylinder_publisher_->on_deactivate();
+    holder_servo_publisher_->on_deactivate();
     robomasu_publisher_->on_deactivate();
     ejection_publisher_->on_deactivate();
     RCLCPP_INFO(get_logger(), "on_deactivate() called. state: id=%u, label=%s",
@@ -105,6 +119,7 @@ JoyChanger::CallbackReturn JoyChanger::on_cleanup(const rclcpp_lifecycle::State 
 {
     joy_subscriber_.reset();
     air_cylinder_publisher_.reset();
+    holder_servo_publisher_.reset();
     robomasu_publisher_.reset();
     ejection_publisher_.reset();
     RCLCPP_INFO(get_logger(), "on_cleanup() called. state: id=%u, label=%s",
@@ -123,6 +138,7 @@ JoyChanger::CallbackReturn JoyChanger::on_shutdown(const rclcpp_lifecycle::State
 {
     joy_subscriber_.reset();
     air_cylinder_publisher_.reset();
+    holder_servo_publisher_.reset();
     robomasu_publisher_.reset();
     ejection_publisher_.reset();
     RCLCPP_INFO(get_logger(), "on_shutdown() called. state: id=%u, label=%s",
@@ -132,24 +148,32 @@ JoyChanger::CallbackReturn JoyChanger::on_shutdown(const rclcpp_lifecycle::State
 
 void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
 {
-    if (!air_cylinder_publisher_->is_activated()) {
+    if (!air_cylinder_publisher_->is_activated() || !holder_servo_publisher_->is_activated()) {
         return;
     }
 
-    // bit 0: circle, bit 1: cross, bit 2: create, bit 3: option (share-equivalent input)
-    uint8_t air_cylinder = 0;
-    air_cylinder |= button_pressed(*joy, kCircleButton) << 0;
-    air_cylinder |= button_pressed(*joy, kCrossButton) << 1;
-    air_cylinder |= button_pressed(*joy, kCreateButton) << 2;
-    air_cylinder |= button_pressed(*joy, kOptionButton) << 3;
+    const rclcpp::Time joy_stamp(joy->header.stamp);
+    update_toggle_button(
+        button_pressed(*joy, kCircleButton), kAirCylinderCircle, air_cylinder_state_, 0, joy_stamp);
+    update_toggle_button(
+        button_pressed(*joy, kCrossButton), kAirCylinderCross, air_cylinder_state_, 1, joy_stamp);
+    update_toggle_button(
+        button_pressed(*joy, kCreateButton), kHolderServoCreate, holder_servo_state_, 0, joy_stamp);
+    update_toggle_button(
+        button_pressed(*joy, kOptionButton), kHolderServoOption, holder_servo_state_, 1, joy_stamp);
+
     std_msgs::msg::ByteMultiArray air_cylinder_msg;
-    air_cylinder_msg.data = {air_cylinder};
+    air_cylinder_msg.data = {air_cylinder_state_};
+    std_msgs::msg::Int32MultiArray holder_servo_msg;
+    holder_servo_msg.data = {
+        static_cast<int32_t>(holder_servo_state_ & 0x01),
+        static_cast<int32_t>((holder_servo_state_ & 0x02) >> 1)
+    };
 
     const bool l1 = button_pressed(*joy, kL1Button);
     const bool r1 = button_pressed(*joy, kR1Button);
     const int32_t hand_direction = l1 == r1 ? 0 : (l1 ? 1 : -1);
     const int32_t ballHolder_direction = axis_direction(*joy, kDpadVerticalAxis);
-    const rclcpp::Time joy_stamp(joy->header.stamp);
     if (has_last_joy_stamp_) {
         const double elapsed_seconds = (joy_stamp - last_joy_stamp_).seconds();
         if (elapsed_seconds > 0.0) {
@@ -181,8 +205,27 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
     ejection_msg.data = {button_pressed(*joy, kTriangleButton) ? max_ejectionrpm_ : 0};
 
     air_cylinder_publisher_->publish(air_cylinder_msg);
+    holder_servo_publisher_->publish(holder_servo_msg);
     robomasu_publisher_->publish(robomasu_msg);
     ejection_publisher_->publish(ejection_msg);
+}
+
+void JoyChanger::update_toggle_button(
+    bool pressed, size_t index, uint8_t & output, uint8_t bit, const rclcpp::Time & stamp)
+{
+    if (pressed && !button_was_pressed_[index]) {
+        const bool debounce_elapsed = !has_button_release_stamp_[index] ||
+            (stamp - last_button_release_stamp_[index]).seconds() >= kToggleDebounceSeconds;
+        if (debounce_elapsed) {
+            output ^= static_cast<uint8_t>(1U << bit);
+        }
+    }
+
+    if (!pressed && button_was_pressed_[index]) {
+        last_button_release_stamp_[index] = stamp;
+        has_button_release_stamp_[index] = true;
+    }
+    button_was_pressed_[index] = pressed;
 }
 
 rcl_interfaces::msg::SetParametersResult JoyChanger::parameters_callback(

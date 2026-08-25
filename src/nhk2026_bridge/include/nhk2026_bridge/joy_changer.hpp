@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <functional>
 #include <vector>
@@ -26,12 +27,16 @@ private:
     CallbackReturn on_shutdown(const rclcpp_lifecycle::State & state);
 
     void joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy);
+    void update_toggle_button(
+        bool pressed, size_t index, uint8_t & output, uint8_t bit, const rclcpp::Time & stamp);
     rcl_interfaces::msg::SetParametersResult parameters_callback(
         const std::vector<rclcpp::Parameter> & parameters);
 
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_subscriber_;
     rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::ByteMultiArray>::SharedPtr
         air_cylinder_publisher_;
+    rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Int32MultiArray>::SharedPtr
+        holder_servo_publisher_;
     rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Int32MultiArray>::SharedPtr
         robomasu_publisher_;
     rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Int32MultiArray>::SharedPtr
@@ -48,5 +53,10 @@ private:
     double ballHolder_speed_;
     double ballHolder_;
     int32_t max_ejectionrpm_;
+    uint8_t air_cylinder_state_;
+    uint8_t holder_servo_state_;
+    std::array<bool, 4> button_was_pressed_;
+    std::array<rclcpp::Time, 4> last_button_release_stamp_;
+    std::array<bool, 4> has_button_release_stamp_;
     OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;
 };
