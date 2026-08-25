@@ -32,24 +32,25 @@ int32_t axis_direction(const sensor_msgs::msg::Joy & joy, size_t index)
 
 JoyChanger::JoyChanger()
 : LifecycleNode("joy_changer"),
-  maxhand_rotation_(20),
-  minhand_rotation_(-70),
-  hand_rotation_speed_(0.0),
-  hand_rotation_(0.0),
-  has_last_joy_stamp_(false),
-  maxball_holder_(0),
-  max_ejectionrpm_(0)
+    maxhand_rotation_(20),
+    minhand_rotation_(-70),
+    hand_rotation_speed_(0.0),
+    hand_rotation_(0.0),
+    has_last_joy_stamp_(false),
+    maxball_holder_(0),
+    min_ejectionrpm_(0),
+    max_ejectionrpm_(0)
 {
-    this->declare_parameter<int>("maxhand_rotation", 20);
-    this->declare_parameter<int>("minhand_rotation", -70);
-    this->declare_parameter<double>("hand_rotation_speed", 0.0);
-    this->declare_parameter<int>("maxball_holder", 0);
+    this->declare_parameter<int>("handRotation_max", 20);
+    this->declare_parameter<int>("handRotation_min", -70);
+    this->declare_parameter<double>("handRotation_speed", 0.0);
+    this->declare_parameter<int>("ballHolder_max", 0);
     this->declare_parameter<int>("max_ejectionrpm", 0);
 
-    maxhand_rotation_ = this->get_parameter("maxhand_rotation").as_int();
-    minhand_rotation_ = this->get_parameter("minhand_rotation").as_int();
-    hand_rotation_speed_ = this->get_parameter("hand_rotation_speed").as_double();
-    maxball_holder_ = this->get_parameter("maxball_holder").as_int();
+    maxhand_rotation_ = this->get_parameter("handRotation_max").as_int();
+    minhand_rotation_ = this->get_parameter("handRotation_min").as_int();
+    hand_rotation_speed_ = this->get_parameter("handRotation_speed").as_double();
+    maxball_holder_ = this->get_parameter("ballHolder_max").as_int();
     max_ejectionrpm_ = this->get_parameter("max_ejectionrpm").as_int();
 
     parameter_callback_handle_ = this->add_on_set_parameters_callback(
@@ -176,28 +177,28 @@ rcl_interfaces::msg::SetParametersResult JoyChanger::parameters_callback(
     result.successful = true;
     result.reason = "success";
     for (const auto & parameter : parameters) {
-        if (parameter.get_name() == "maxhand_rotation") {
+        if (parameter.get_name() == "handRotation_max") {
             if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
                 result.successful = false;
-                result.reason = "maxhand_rotation must be an integer";
+                result.reason = "handRotation_max must be an integer";
                 return result;
             }
             maxhand_rotation_ = parameter.as_int();
-        } else if (parameter.get_name() == "minhand_rotation") {
+        } else if (parameter.get_name() == "handRotation_min") {
             if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
                 result.successful = false;
-                result.reason = "minhand_rotation must be an integer";
+                result.reason = "handRotation_min must be an integer";
                 return result;
             }
             minhand_rotation_ = parameter.as_int();
-        } else if (parameter.get_name() == "hand_rotation_speed") {
+        } else if (parameter.get_name() == "handRotation_speed") {
             if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE || parameter.as_double() < 0.0) {
                 result.successful = false;
-                result.reason = "hand_rotation_speed must be a non-negative double";
+                result.reason = "handRotation_speed must be a non-negative double";
                 return result;
             }
             hand_rotation_speed_ = parameter.as_double();
-        } else if (parameter.get_name() == "maxball_holder") {
+        } else if (parameter.get_name() == "ballHolder_max") {
             if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
                 continue;
             }

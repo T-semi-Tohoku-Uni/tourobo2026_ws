@@ -3,10 +3,10 @@
     ifname: "can0"
 
     # joy_changer の出力上限値
-    maxhand_rotation: 70
-    minhand_rotation: -90
-    hand_rotation_speed: 90.0
-    maxball_holder: 10
+    handRotation_max: 70
+    handRotation_min: -90
+    handRotation_speed: 90.0
+    ballHolder_max: 10
     max_ejectionrpm: 10
 
     # pub_float_bridge_topic: ["motor_feedback", "motor_step_feedback","quaternion_feedback","takano_hand_feedback","takano_holder_feedback"]
