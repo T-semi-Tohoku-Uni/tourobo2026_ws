@@ -71,8 +71,8 @@ def generate_launch_description():
 
     name_space = ''
     ld = LaunchDescription()
-    #ld.add_action(OpaqueFunction(function=_require_can0))
-    #ld.add_action(OpaqueFunction(function=_ensure_can0_up))
+    ld.add_action(OpaqueFunction(function=_require_can0))
+    ld.add_action(OpaqueFunction(function=_ensure_can0_up))
 
     # canbridge node (namespace引数を削除)
     canbridgenode = LifecycleNode(
@@ -85,7 +85,7 @@ def generate_launch_description():
         emulate_tty=True, 
     )
 
-    #ld.add_action(canbridgenode)
+    ld.add_action(canbridgenode)
 
     canbridge_configure_event_handler = RegisterEventHandler(
         OnProcessStart(
