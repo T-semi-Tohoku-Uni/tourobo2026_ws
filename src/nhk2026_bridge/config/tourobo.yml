@@ -8,7 +8,7 @@
     handRotation_speed: 90.0
     ballHolder_max: 10
     ballHolder_min: 0
-    ballHolder_speed: 10.0
+    ballHolder_speed: 1.0
     max_ejectionrpm: 10
 
     # pub_float_bridge_topic: ["motor_feedback", "motor_step_feedback","quaternion_feedback","takano_hand_feedback","takano_holder_feedback"]
