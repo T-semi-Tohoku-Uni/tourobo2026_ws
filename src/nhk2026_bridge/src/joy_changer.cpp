@@ -182,7 +182,7 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
     }
     if (check_toggle_button_debounce(
             button_pressed(*joy, kOptionButton), kHolderServoOption, joy_stamp)) {
-        holder_servo1_state_ = (holder_servo1_state_ + 1) % 2; // rotate through 0, 1
+        holder_servo3_state_ = (holder_servo3_state_ + 1) % 2; // rotate through 0, 1
     }
 
     const int32_t holder_servo1_value = (holder_servo1_state_ == 0) ? holder_servo1_0_ :
