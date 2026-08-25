@@ -10,6 +10,7 @@
     ballHolder_min: -834
     ballHolder_speed: 200.0
     max_ejectionrpm: 10
+    toggleDebounceSeconds: 0.05
 
     # pub_float_bridge_topic: ["motor_feedback", "motor_step_feedback","quaternion_feedback","takano_hand_feedback","takano_holder_feedback"]
     # pub_float_bridge_canid: [0x300, 0x301, 0x102, 0x302, 0x303]

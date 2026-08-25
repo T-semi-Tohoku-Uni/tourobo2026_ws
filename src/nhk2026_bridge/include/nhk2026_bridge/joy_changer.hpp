@@ -58,5 +58,8 @@ private:
     std::array<bool, 4> button_was_pressed_;
     std::array<rclcpp::Time, 4> last_button_release_stamp_;
     std::array<bool, 4> has_button_release_stamp_;
+
+    double toggleDebounceSeconds_ = 0.1;
+
     OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;
 };

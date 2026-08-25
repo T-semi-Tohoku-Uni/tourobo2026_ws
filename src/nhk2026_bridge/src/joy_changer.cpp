@@ -15,7 +15,6 @@ constexpr size_t kR1Button = 5;
 constexpr size_t kCreateButton = 8;
 constexpr size_t kOptionButton = 9;
 constexpr size_t kDpadVerticalAxis = 7;
-constexpr double kToggleDebounceSeconds = 0.1;
 
 constexpr size_t kAirCylinderCircle = 0;
 constexpr size_t kAirCylinderCross = 1;
@@ -60,6 +59,7 @@ JoyChanger::JoyChanger()
     this->declare_parameter<int>("ballHolder_min", 0);
     this->declare_parameter<double>("ballHolder_speed", 0.0);
     this->declare_parameter<int>("max_ejectionrpm", 0);
+    this->declare_parameter<double>("toggleDebounceSeconds", 0.1);
 
     handRotation_max_ = this->get_parameter("handRotation_max").as_int();
     handRotation_min_ = this->get_parameter("handRotation_min").as_int();
@@ -68,6 +68,7 @@ JoyChanger::JoyChanger()
     ballHolder_min_ = this->get_parameter("ballHolder_min").as_int();
     ballHolder_speed_ = this->get_parameter("ballHolder_speed").as_double();
     max_ejectionrpm_ = this->get_parameter("max_ejectionrpm").as_int();
+    toggleDebounceSeconds_ = this->get_parameter("toggleDebounceSeconds").as_double();
 
     parameter_callback_handle_ = this->add_on_set_parameters_callback(
         std::bind(&JoyChanger::parameters_callback, this, _1));
@@ -215,7 +216,7 @@ void JoyChanger::update_toggle_button(
 {
     if (pressed && !button_was_pressed_[index]) {
         const bool debounce_elapsed = !has_button_release_stamp_[index] ||
-            (stamp - last_button_release_stamp_[index]).seconds() >= kToggleDebounceSeconds;
+            (stamp - last_button_release_stamp_[index]).seconds() >= toggleDebounceSeconds_;
         if (debounce_elapsed) {
             output ^= static_cast<uint8_t>(1U << bit);
         }
@@ -277,6 +278,12 @@ rcl_interfaces::msg::SetParametersResult JoyChanger::parameters_callback(
                 continue;
             }
             max_ejectionrpm_ = parameter.as_int();
+        }
+        else if (parameter.get_name() == "toggleDebounceSeconds") {
+            if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE || parameter.as_double() < 0.0) {
+                continue;
+            }
+            toggleDebounceSeconds_ = parameter.as_double();
         }
     }
     return result;
