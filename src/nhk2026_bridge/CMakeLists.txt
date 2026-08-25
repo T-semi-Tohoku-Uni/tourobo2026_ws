@@ -35,6 +35,7 @@ ament_target_dependencies(joy_vel_converter
   rclcpp_lifecycle
   sensor_msgs
   geometry_msgs
+  std_msgs
 )
 
 install(

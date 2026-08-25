@@ -34,6 +34,12 @@ Joy2Vel::CallbackReturn Joy2Vel::on_configure(const rclcpp_lifecycle::State &sta
         std::bind(&Joy2Vel::joy_callback, this, _1)
     );
 
+    this->angle_feedback_subscriber = this->create_subscription<std_msgs::msg::Float32MultiArray>(
+        std::string("angle_feedback"),
+        rclcpp::SystemDefaultsQoS(),
+        std::bind(&Joy2Vel::angle_feedback_callback, this, _1)
+    );
+
     RCLCPP_INFO(
       get_logger(),
       "on_configure() called. state: id=%u, label=%s",
@@ -82,6 +88,7 @@ Joy2Vel::CallbackReturn Joy2Vel::on_deactivate(const rclcpp_lifecycle::State &st
 Joy2Vel::CallbackReturn Joy2Vel::on_cleanup(const rclcpp_lifecycle::State &state)
 {
     this->joy_subscriber.reset();
+    this->angle_feedback_subscriber.reset();
     this->vel_publisher.reset();
     RCLCPP_INFO(
         get_logger(),
@@ -126,6 +133,7 @@ Joy2Vel::CallbackReturn Joy2Vel::on_shutdown(const rclcpp_lifecycle::State &stat
         this->vel_publisher->publish(txdata);
     }
     this->joy_subscriber.reset();
+    this->angle_feedback_subscriber.reset();
     this->vel_publisher.reset();
     RCLCPP_INFO(
         get_logger(),
@@ -138,15 +146,26 @@ Joy2Vel::CallbackReturn Joy2Vel::on_shutdown(const rclcpp_lifecycle::State &stat
 void Joy2Vel::joy_callback(const sensor_msgs::msg::Joy::SharedPtr rxdata)
 {
     if (this->vel_publisher->is_activated()) {
+        const double body_vx = -rxdata->axes[0] * max_vx/* - rxdata->axes[6]*max_button_vx*/;
+        const double body_vy =  rxdata->axes[1] * max_vy/* + rxdata->axes[7]*max_button_vy*/;
+        const double robot_angle_rad = robot_angle_deg * M_PI / 180.0;
+
         geometry_msgs::msg::Twist txdata;
-        txdata.linear.x = -rxdata->axes[0] * max_vx/* - rxdata->axes[6]*max_button_vx*/;
-        txdata.linear.y =  rxdata->axes[1] * max_vy/* + rxdata->axes[7]*max_button_vy*/;
+        txdata.linear.x = std::cos(robot_angle_rad) * body_vx - std::sin(robot_angle_rad) * body_vy;
+        txdata.linear.y = std::sin(robot_angle_rad) * body_vx + std::cos(robot_angle_rad) * body_vy;
         txdata.linear.z = 0;
 
         txdata.angular.x = 0;
         txdata.angular.y = 0;
         txdata.angular.z = (rxdata->axes[5] - rxdata->axes[2])*max_omega;
         this->vel_publisher->publish(txdata);
+    }
+}
+
+void Joy2Vel::angle_feedback_callback(const std_msgs::msg::Float32MultiArray::SharedPtr rxdata)
+{
+    if (!rxdata->data.empty()) {
+        robot_angle_deg = rxdata->data[0];
     }
 }
 

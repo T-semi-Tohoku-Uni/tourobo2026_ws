@@ -6,6 +6,7 @@
 
 #include "sensor_msgs/msg/joy.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "std_msgs/msg/float32_multi_array.hpp"
 
 # include <bits/stdc++.h>
 
@@ -27,8 +28,10 @@ private:
     CallbackReturn on_shutdown(const rclcpp_lifecycle::State &state);
 
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_subscriber;
+    rclcpp::Subscription<std_msgs::msg::Float32MultiArray>::SharedPtr angle_feedback_subscriber;
     rclcpp_lifecycle::LifecyclePublisher<geometry_msgs::msg::Twist>::SharedPtr vel_publisher;
     void joy_callback(const sensor_msgs::msg::Joy::SharedPtr rxdata);
+    void angle_feedback_callback(const std_msgs::msg::Float32MultiArray::SharedPtr rxdata);
 
     double max_vx;
     double max_vy;
@@ -36,6 +39,7 @@ private:
 
     double max_button_vx;
     double max_button_vy;
+    double robot_angle_deg = 0.0;
 
     OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;
     rcl_interfaces::msg::SetParametersResult parameters_callback(
