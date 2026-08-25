@@ -3,8 +3,8 @@
 Joy2Vel::Joy2Vel()
 : rclcpp_lifecycle::LifecycleNode(std::string("joy_vel_converter"))
 {
-    this->declare_parameter<double>("max_vx", 2.0);
-    this->declare_parameter<double>("max_vy", 2.0);
+    this->declare_parameter<double>("max_vx", 3.0);
+    this->declare_parameter<double>("max_vy", 3.0);
     this->declare_parameter<double>("max_omega", M_PI);
     this->declare_parameter<double>("max_button_vx", 0.2);
     this->declare_parameter<double>("max_button_vy", 0.2);
@@ -139,8 +139,8 @@ void Joy2Vel::joy_callback(const sensor_msgs::msg::Joy::SharedPtr rxdata)
 {
     if (this->vel_publisher->is_activated()) {
         geometry_msgs::msg::Twist txdata;
-        txdata.linear.x = -rxdata->axes[0] * max_vx - rxdata->axes[6]*max_button_vx;
-        txdata.linear.y =  rxdata->axes[1] * max_vy + rxdata->axes[7]*max_button_vy;
+        txdata.linear.x = -rxdata->axes[0] * max_vx/* - rxdata->axes[6]*max_button_vx*/;
+        txdata.linear.y =  rxdata->axes[1] * max_vy/* + rxdata->axes[7]*max_button_vy*/;
         txdata.linear.z = 0;
 
         txdata.angular.x = 0;
