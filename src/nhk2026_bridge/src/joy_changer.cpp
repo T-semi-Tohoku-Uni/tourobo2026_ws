@@ -32,12 +32,12 @@ int32_t axis_direction(const sensor_msgs::msg::Joy & joy, size_t index)
 
 JoyChanger::JoyChanger()
 : LifecycleNode("joy_changer"),
-    maxhand_rotation_(20),
-    minhand_rotation_(-70),
-    hand_rotation_speed_(0.0),
+    handRotation_max_(20),
+    handRotation_min_(-70),
+    handRotation_speed_(0.0),
     hand_rotation_(0.0),
     has_last_joy_stamp_(false),
-    maxball_holder_(0),
+    ballHolder_max_(0),
     min_ejectionrpm_(0),
     max_ejectionrpm_(0)
 {
@@ -47,10 +47,10 @@ JoyChanger::JoyChanger()
     this->declare_parameter<int>("ballHolder_max", 0);
     this->declare_parameter<int>("max_ejectionrpm", 0);
 
-    maxhand_rotation_ = this->get_parameter("handRotation_max").as_int();
-    minhand_rotation_ = this->get_parameter("handRotation_min").as_int();
-    hand_rotation_speed_ = this->get_parameter("handRotation_speed").as_double();
-    maxball_holder_ = this->get_parameter("ballHolder_max").as_int();
+    handRotation_max_ = this->get_parameter("handRotation_max").as_int();
+    handRotation_min_ = this->get_parameter("handRotation_min").as_int();
+    handRotation_speed_ = this->get_parameter("handRotation_speed").as_double();
+    ballHolder_max_ = this->get_parameter("ballHolder_max").as_int();
     max_ejectionrpm_ = this->get_parameter("max_ejectionrpm").as_int();
 
     parameter_callback_handle_ = this->add_on_set_parameters_callback(
@@ -146,21 +146,21 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
     if (has_last_joy_stamp_) {
         const double elapsed_seconds = (joy_stamp - last_joy_stamp_).seconds();
         if (elapsed_seconds > 0.0) {
-            hand_rotation_ += hand_direction * hand_rotation_speed_ * elapsed_seconds;
+            hand_rotation_ += hand_direction * handRotation_speed_ * elapsed_seconds;
         }
     }
     last_joy_stamp_ = joy_stamp;
     has_last_joy_stamp_ = true;
     const double hand_rotation_min = std::min(
-        static_cast<double>(minhand_rotation_), static_cast<double>(maxhand_rotation_));
+        static_cast<double>(handRotation_min_), static_cast<double>(handRotation_max_));
     const double hand_rotation_max = std::max(
-        static_cast<double>(minhand_rotation_), static_cast<double>(maxhand_rotation_));
+        static_cast<double>(handRotation_min_), static_cast<double>(handRotation_max_));
     hand_rotation_ = std::clamp(hand_rotation_, hand_rotation_min, hand_rotation_max);
 
     std_msgs::msg::Int32MultiArray robomasu_msg;
     robomasu_msg.data = {
         static_cast<int32_t>(hand_rotation_),
-        axis_direction(*joy, kDpadVerticalAxis) * maxball_holder_};
+        axis_direction(*joy, kDpadVerticalAxis) * ballHolder_max_};
 
     std_msgs::msg::Int32MultiArray ejection_msg;
     ejection_msg.data = {button_pressed(*joy, kTriangleButton) ? max_ejectionrpm_ : 0};
@@ -183,26 +183,26 @@ rcl_interfaces::msg::SetParametersResult JoyChanger::parameters_callback(
                 result.reason = "handRotation_max must be an integer";
                 return result;
             }
-            maxhand_rotation_ = parameter.as_int();
+            handRotation_max_ = parameter.as_int();
         } else if (parameter.get_name() == "handRotation_min") {
             if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
                 result.successful = false;
                 result.reason = "handRotation_min must be an integer";
                 return result;
             }
-            minhand_rotation_ = parameter.as_int();
+            handRotation_min_ = parameter.as_int();
         } else if (parameter.get_name() == "handRotation_speed") {
             if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE || parameter.as_double() < 0.0) {
                 result.successful = false;
                 result.reason = "handRotation_speed must be a non-negative double";
                 return result;
             }
-            hand_rotation_speed_ = parameter.as_double();
+            handRotation_speed_ = parameter.as_double();
         } else if (parameter.get_name() == "ballHolder_max") {
             if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
                 continue;
             }
-            maxball_holder_ = parameter.as_int();
+            ballHolder_max_ = parameter.as_int();
         } else if (parameter.get_name() == "max_ejectionrpm") {
             if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
                 continue;

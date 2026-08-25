@@ -37,13 +37,13 @@ private:
     rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Int32MultiArray>::SharedPtr
         ejection_publisher_;
 
-    int32_t maxhand_rotation_;
-    int32_t minhand_rotation_;
-    double hand_rotation_speed_;
+    int32_t handRotation_max_;
+    int32_t handRotation_min_;
+    double handRotation_speed_;
     double hand_rotation_;
     rclcpp::Time last_joy_stamp_;
     bool has_last_joy_stamp_;
-    int32_t maxball_holder_;
+    int32_t ballHolder_max_;
     int32_t max_ejectionrpm_;
     OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;
 };
