@@ -174,7 +174,7 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
     const bool l1 = button_pressed(*joy, kL1Button);
     const bool r1 = button_pressed(*joy, kR1Button);
     const int32_t hand_direction = l1 == r1 ? 0 : (l1 ? 1 : -1);
-    const int32_t ballHolder_direction = axis_direction(*joy, kDpadVerticalAxis);
+    const int32_t ballHolder_direction = (-1)*axis_direction(*joy, kDpadVerticalAxis);
     if (has_last_joy_stamp_) {
         const double elapsed_seconds = (joy_stamp - last_joy_stamp_).seconds();
         if (elapsed_seconds > 0.0) {

@@ -7,7 +7,7 @@
     handRotation_min: -170
     handRotation_speed: 120.0
     ballHolder_max: 0
-    ballHolder_min: -834
+    ballHolder_min: -820
     ballHolder_speed: 200.0
     max_ejectionrpm: 10
     toggleDebounceSeconds: 0.05
