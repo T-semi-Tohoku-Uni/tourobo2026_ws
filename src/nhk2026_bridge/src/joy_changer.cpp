@@ -20,6 +20,7 @@ constexpr size_t kAirCylinderCircle = 0;
 constexpr size_t kAirCylinderCross = 1;
 constexpr size_t kHolderServoCreate = 2;
 constexpr size_t kHolderServoOption = 3;
+constexpr size_t kEjectionTriangle = 4;
 
 bool button_pressed(const sensor_msgs::msg::Joy & joy, size_t index)
 {
@@ -46,12 +47,13 @@ JoyChanger::JoyChanger()
     ballHolder_min_(0),
     ballHolder_speed_(0.0),
     ballHolder_(0.0),
-    max_ejectionrpm_(0),
+    ejectionRpm_max_(0),
+    ejection_state_(0),
     air_cylinder_state_(0),
     holder_servo1_state_(0),
     holder_servo3_state_(0),
-    button_was_pressed_{false, false, false, false},
-    has_button_release_stamp_{false, false, false, false}
+    button_was_pressed_{false, false, false, false, false},
+    has_button_release_stamp_{false, false, false, false, false}
 {
     this->declare_parameter<int>("handRotation_max", 20);
     this->declare_parameter<int>("handRotation_min", -70);
@@ -59,7 +61,8 @@ JoyChanger::JoyChanger()
     this->declare_parameter<int>("ballHolder_max", 0);
     this->declare_parameter<int>("ballHolder_min", 0);
     this->declare_parameter<double>("ballHolder_speed", 0.0);
-    this->declare_parameter<int>("max_ejectionrpm", 0);
+    this->declare_parameter<int>("ejectionRpm_max", 0);
+    this->declare_parameter<double>("ejectionRpm_rate", 1.0);
     this->declare_parameter<double>("toggleDebounceSeconds", 0.1);
     this->declare_parameter<int>("holder_servo1_0", 130);
     this->declare_parameter<int>("holder_servo1_1", 88);
@@ -73,7 +76,8 @@ JoyChanger::JoyChanger()
     ballHolder_max_ = this->get_parameter("ballHolder_max").as_int();
     ballHolder_min_ = this->get_parameter("ballHolder_min").as_int();
     ballHolder_speed_ = this->get_parameter("ballHolder_speed").as_double();
-    max_ejectionrpm_ = this->get_parameter("max_ejectionrpm").as_int();
+    ejectionRpm_max_ = this->get_parameter("ejectionRpm_max").as_int();
+    ejectionRpm_rate_ = this->get_parameter("ejectionRpm_rate").as_double();
     toggleDebounceSeconds_ = this->get_parameter("toggleDebounceSeconds").as_double();
     holder_servo1_0_ = this->get_parameter("holder_servo1_0").as_int();
     holder_servo1_1_ = this->get_parameter("holder_servo1_1").as_int();
@@ -221,8 +225,20 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
         static_cast<int32_t>(ballHolder_)
     };
 
+    if (check_toggle_button_debounce(
+            button_pressed(*joy, kTriangleButton), kEjectionTriangle, joy_stamp)) {
+        ejection_state_ = (ejection_state_ + 1) % 2; // toggle between 0 and 1
+    }
+    
+
     std_msgs::msg::Int32MultiArray ejection_msg;
-    ejection_msg.data = {button_pressed(*joy, kTriangleButton) ? max_ejectionrpm_ : 0};
+
+    if (ejection_state_ == 1) {
+        const float ejectionRpm_max_f = static_cast<float>(ejectionRpm_max_);
+        ejection_msg.data = {ejectionRpm_max_, static_cast<int32_t>(ejectionRpm_max_f * ejectionRpm_rate_), static_cast<int32_t>(ejectionRpm_max_f * ejectionRpm_rate_)};
+    } else {
+        ejection_msg.data = {0, 0, 0};
+    }
 
     air_cylinder_publisher_->publish(air_cylinder_msg);
     holder_servo_publisher_->publish(holder_servo_msg);
@@ -310,11 +326,19 @@ rcl_interfaces::msg::SetParametersResult JoyChanger::parameters_callback(
             }
             ballHolder_speed_ = parameter.as_double();
         }
-        else if (parameter.get_name() == "max_ejectionrpm") {
+        else if (parameter.get_name() == "ejectionRpm_max") {
             if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
                 continue;
             }
-            max_ejectionrpm_ = parameter.as_int();
+            ejectionRpm_max_ = parameter.as_int();
+        }
+        else if (parameter.get_name() == "ejectionRpm_rate") {
+            if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE || parameter.as_double() < 0.0) {
+                result.successful = false;
+                result.reason = "ejectionRpm_rate must be a non-negative double";
+                return result;
+            }
+            ejectionRpm_rate_ = parameter.as_double();
         }
         else if (parameter.get_name() == "toggleDebounceSeconds") {
             if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE || parameter.as_double() < 0.0) {

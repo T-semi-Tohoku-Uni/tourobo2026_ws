@@ -9,7 +9,9 @@
     ballHolder_max: 0
     ballHolder_min: -820
     ballHolder_speed: 200.0
-    max_ejectionrpm: 10
+    ejectionRpm_max: 10
+    ejectionRpm_rate: 1.0
+
     toggleDebounceSeconds: 0.05
 
     holder_servo1_0 : 130

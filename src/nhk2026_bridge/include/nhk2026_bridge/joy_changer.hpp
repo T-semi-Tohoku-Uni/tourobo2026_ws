@@ -54,7 +54,9 @@ private:
     int32_t ballHolder_min_;
     double ballHolder_speed_;
     double ballHolder_;
-    int32_t max_ejectionrpm_;
+    int32_t ejectionRpm_max_;
+    double ejectionRpm_rate_;
+    uint8_t ejection_state_;
     uint8_t air_cylinder_state_;
     uint8_t holder_servo1_state_;
     uint8_t holder_servo3_state_;
@@ -64,9 +66,9 @@ private:
     uint32_t holder_servo3_0_;
     uint32_t holder_servo3_1_;
 
-    std::array<bool, 4> button_was_pressed_;
-    std::array<rclcpp::Time, 4> last_button_release_stamp_;
-    std::array<bool, 4> has_button_release_stamp_;
+    std::array<bool, 5> button_was_pressed_;
+    std::array<rclcpp::Time, 5> last_button_release_stamp_;
+    std::array<bool, 5> has_button_release_stamp_;
 
     double toggleDebounceSeconds_ = 0.1;
 
