@@ -48,7 +48,8 @@ JoyChanger::JoyChanger()
     ballHolder_(0.0),
     max_ejectionrpm_(0),
     air_cylinder_state_(0),
-    holder_servo_state_(0),
+    holder_servo1_state_(0),
+    holder_servo3_state_(0),
     button_was_pressed_{false, false, false, false},
     has_button_release_stamp_{false, false, false, false}
 {
@@ -60,6 +61,11 @@ JoyChanger::JoyChanger()
     this->declare_parameter<double>("ballHolder_speed", 0.0);
     this->declare_parameter<int>("max_ejectionrpm", 0);
     this->declare_parameter<double>("toggleDebounceSeconds", 0.1);
+    this->declare_parameter<int>("holder_servo1_0", 130);
+    this->declare_parameter<int>("holder_servo1_1", 88);
+    this->declare_parameter<int>("holder_servo1_2", 50);
+    this->declare_parameter<int>("holder_servo3_0", 20);
+    this->declare_parameter<int>("holder_servo3_1", 62);
 
     handRotation_max_ = this->get_parameter("handRotation_max").as_int();
     handRotation_min_ = this->get_parameter("handRotation_min").as_int();
@@ -69,6 +75,11 @@ JoyChanger::JoyChanger()
     ballHolder_speed_ = this->get_parameter("ballHolder_speed").as_double();
     max_ejectionrpm_ = this->get_parameter("max_ejectionrpm").as_int();
     toggleDebounceSeconds_ = this->get_parameter("toggleDebounceSeconds").as_double();
+    holder_servo1_0_ = this->get_parameter("holder_servo1_0").as_int();
+    holder_servo1_1_ = this->get_parameter("holder_servo1_1").as_int();
+    holder_servo1_2_ = this->get_parameter("holder_servo1_2").as_int();
+    holder_servo3_0_ = this->get_parameter("holder_servo3_0").as_int();
+    holder_servo3_1_ = this->get_parameter("holder_servo3_1").as_int();
 
     parameter_callback_handle_ = this->add_on_set_parameters_callback(
         std::bind(&JoyChanger::parameters_callback, this, _1));
@@ -158,17 +169,25 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
         button_pressed(*joy, kCircleButton), kAirCylinderCircle, air_cylinder_state_, 0, joy_stamp);
     update_toggle_button(
         button_pressed(*joy, kCrossButton), kAirCylinderCross, air_cylinder_state_, 1, joy_stamp);
-    update_toggle_button(
-        button_pressed(*joy, kCreateButton), kHolderServoCreate, holder_servo_state_, 0, joy_stamp);
-    update_toggle_button(
-        button_pressed(*joy, kOptionButton), kHolderServoOption, holder_servo_state_, 1, joy_stamp);
-
     std_msgs::msg::ByteMultiArray air_cylinder_msg;
     air_cylinder_msg.data = {air_cylinder_state_};
+
+        if (check_toggle_button_debounce(
+            button_pressed(*joy, kCreateButton), kHolderServoCreate, joy_stamp)) {
+        holder_servo1_state_ = (holder_servo1_state_ + 1) % 3; // rotate through 0, 1, 2
+    }
+    if (check_toggle_button_debounce(
+            button_pressed(*joy, kCreateButton), kHolderServoOption, joy_stamp)) {
+        holder_servo1_state_ = (holder_servo1_state_ + 1) % 2; // rotate through 0, 1
+    }
+
+    const int32_t holder_servo1_value = (holder_servo1_state_ == 0) ? holder_servo1_0_ :
+                                    (holder_servo1_state_ == 1) ? holder_servo1_1_ : holder_servo1_2_;
+    const int32_t holder_servo3_value = (holder_servo3_state_ == 0) ? holder_servo3_0_ : holder_servo3_1_;
     std_msgs::msg::Int32MultiArray holder_servo_msg;
     holder_servo_msg.data = {
-        static_cast<int32_t>(holder_servo_state_ & 0x01),
-        static_cast<int32_t>((holder_servo_state_ & 0x02) >> 1)
+        holder_servo1_value,
+        holder_servo3_value
     };
 
     const bool l1 = button_pressed(*joy, kL1Button);
@@ -229,6 +248,24 @@ void JoyChanger::update_toggle_button(
     button_was_pressed_[index] = pressed;
 }
 
+// This function is used to check if the toggle button has been pressed and released. updata_toggle_button()と同じ処理を行うが、戻り値でトグルボタンが押されたかどうかを返す
+bool JoyChanger::check_toggle_button_debounce(
+bool pressed, size_t index, const rclcpp::Time & stamp)
+{
+    bool debounce_elapsed = false;
+    if (pressed && !button_was_pressed_[index]) {
+        debounce_elapsed = !has_button_release_stamp_[index] ||
+            (stamp - last_button_release_stamp_[index]).seconds() >= toggleDebounceSeconds_;
+    }
+
+    if (!pressed && button_was_pressed_[index]) {
+        last_button_release_stamp_[index] = stamp;
+        has_button_release_stamp_[index] = true;
+    }
+    button_was_pressed_[index] = pressed;
+    return debounce_elapsed;
+}
+
 rcl_interfaces::msg::SetParametersResult JoyChanger::parameters_callback(
     const std::vector<rclcpp::Parameter> & parameters)
 {
@@ -284,6 +321,36 @@ rcl_interfaces::msg::SetParametersResult JoyChanger::parameters_callback(
                 continue;
             }
             toggleDebounceSeconds_ = parameter.as_double();
+        }
+        else if (parameter.get_name() == "holder_servo1_0") {
+            if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
+                continue;
+            }
+            holder_servo1_0_ = parameter.as_int();
+        }
+        else if (parameter.get_name() == "holder_servo1_1") {
+            if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
+                continue;
+            }
+            holder_servo1_1_ = parameter.as_int();
+        }
+        else if (parameter.get_name() == "holder_servo1_2") {
+            if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
+                continue;
+            }
+            holder_servo1_2_ = parameter.as_int();
+        }
+        else if (parameter.get_name() == "holder_servo3_0") {
+            if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
+                continue;
+            }
+            holder_servo3_0_ = parameter.as_int();
+        }
+        else if (parameter.get_name() == "holder_servo3_1") {
+            if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_INTEGER) {
+                continue;
+            }
+            holder_servo3_1_ = parameter.as_int();
         }
     }
     return result;

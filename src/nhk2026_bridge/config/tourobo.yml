@@ -12,6 +12,12 @@
     max_ejectionrpm: 10
     toggleDebounceSeconds: 0.05
 
+    holder_servo1_0 : 130
+    holder_servo1_1 : 88
+    holder_servo1_2 : 50
+    holder_servo3_0 : 20
+    holder_servo3_1 : 62
+
     pub_float_bridge_topic: ["angle_feedback"]
     pub_float_bridge_canid: [0x350]
     # pub_int_bridge_topic: ["onedlidar","feedback_type"] 

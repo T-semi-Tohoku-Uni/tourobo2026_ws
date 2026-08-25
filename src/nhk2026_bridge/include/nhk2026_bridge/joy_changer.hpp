@@ -29,6 +29,8 @@ private:
     void joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy);
     void update_toggle_button(
         bool pressed, size_t index, uint8_t & output, uint8_t bit, const rclcpp::Time & stamp);
+    bool check_toggle_button_debounce(
+        bool pressed, size_t index, const rclcpp::Time & stamp);
     rcl_interfaces::msg::SetParametersResult parameters_callback(
         const std::vector<rclcpp::Parameter> & parameters);
 
@@ -54,7 +56,14 @@ private:
     double ballHolder_;
     int32_t max_ejectionrpm_;
     uint8_t air_cylinder_state_;
-    uint8_t holder_servo_state_;
+    uint8_t holder_servo1_state_;
+    uint8_t holder_servo3_state_;
+    uint32_t holder_servo1_0_;
+    uint32_t holder_servo1_1_;
+    uint32_t holder_servo1_2_;
+    uint32_t holder_servo3_0_;
+    uint32_t holder_servo3_1_;
+
     std::array<bool, 4> button_was_pressed_;
     std::array<rclcpp::Time, 4> last_button_release_stamp_;
     std::array<bool, 4> has_button_release_stamp_;
