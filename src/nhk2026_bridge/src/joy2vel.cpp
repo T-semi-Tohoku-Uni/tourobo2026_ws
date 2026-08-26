@@ -8,6 +8,7 @@ Joy2Vel::Joy2Vel()
     this->declare_parameter<double>("max_omega", M_PI);
     this->declare_parameter<double>("max_button_vx", 0.2);
     this->declare_parameter<double>("max_button_vy", 0.2);
+    this->declare_parameter<bool>("add_imu_feedback", false);
 
     this->max_vx = this->get_parameter("max_vx").as_double();
     this->max_vy = this->get_parameter("max_vy").as_double();
