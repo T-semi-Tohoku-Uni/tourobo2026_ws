@@ -39,6 +39,7 @@ private:
 
     double max_button_vx;
     double max_button_vy;
+    bool add_imu_feedback;
     double robot_angle_deg = 0.0;
 
     OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;

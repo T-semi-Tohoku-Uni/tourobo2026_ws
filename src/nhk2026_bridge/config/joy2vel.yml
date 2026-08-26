@@ -5,3 +5,4 @@
     max_omega: 3.14
     max_button_vx: 0.2
     max_button_vy: 0.2
+    add_imu_feedback: true

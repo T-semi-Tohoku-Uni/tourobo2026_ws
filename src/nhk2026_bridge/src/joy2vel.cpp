@@ -15,6 +15,7 @@ Joy2Vel::Joy2Vel()
     
     this->max_button_vx = this->get_parameter("max_button_vx").as_double();
     this->max_button_vy = this->get_parameter("max_button_vy").as_double();
+    this->add_imu_feedback = this->get_parameter("add_imu_feedback").as_bool();
 
     this->parameter_callback_handle_ = this->add_on_set_parameters_callback(
         std::bind(&Joy2Vel::parameters_callback, this, _1)
@@ -151,8 +152,13 @@ void Joy2Vel::joy_callback(const sensor_msgs::msg::Joy::SharedPtr rxdata)
         const double robot_angle_rad = robot_angle_deg * M_PI / 180.0;
 
         geometry_msgs::msg::Twist txdata;
-        txdata.linear.x = std::cos(robot_angle_rad) * body_vx + std::sin(robot_angle_rad) * body_vy;
-        txdata.linear.y = -std::sin(robot_angle_rad) * body_vx + std::cos(robot_angle_rad) * body_vy;
+        if (add_imu_feedback) {
+            txdata.linear.x = std::cos(robot_angle_rad) * body_vx + std::sin(robot_angle_rad) * body_vy;
+            txdata.linear.y = -std::sin(robot_angle_rad) * body_vx + std::cos(robot_angle_rad) * body_vy;
+        } else {
+            txdata.linear.x = body_vx;
+            txdata.linear.y = body_vy;
+        }
         txdata.linear.z = 0;
 
         txdata.angular.x = 0;
@@ -198,6 +204,10 @@ rcl_interfaces::msg::SetParametersResult Joy2Vel::parameters_callback(
         else if (param.get_name() == "max_button_vy" && param.get_type() == rclcpp::ParameterType::PARAMETER_DOUBLE)
         {
             this->max_button_vy = param.as_double();
+        }
+        else if (param.get_name() == "add_imu_feedback" && param.get_type() == rclcpp::ParameterType::PARAMETER_BOOL)
+        {
+            this->add_imu_feedback = param.as_bool();
         }
     }
 
