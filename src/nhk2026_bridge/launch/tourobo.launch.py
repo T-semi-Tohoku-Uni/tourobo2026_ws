@@ -71,8 +71,8 @@ def generate_launch_description():
 
     name_space = ''
     ld = LaunchDescription()
-    # ld.add_action(OpaqueFunction(function=_require_can0))
-    # ld.add_action(OpaqueFunction(function=_ensure_can0_up))
+    ld.add_action(OpaqueFunction(function=_require_can0))
+    ld.add_action(OpaqueFunction(function=_ensure_can0_up))
 
     # canbridge node (namespace引数を削除)
     canbridgenode = LifecycleNode(
@@ -220,11 +220,5 @@ def generate_launch_description():
         emulate_tty=True, 
     )
     ld.add_action(joy_node)
-    ld.add_action(Node(
-                package="ros_tcp_endpoint",
-                executable="default_server_endpoint",
-                emulate_tty=True,
-                parameters=[{"ROS_IP": "0.0.0.0"}, {"ROS_TCP_PORT": 10000}],
-            ))
 
     return ld
