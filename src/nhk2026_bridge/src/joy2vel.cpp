@@ -151,8 +151,8 @@ void Joy2Vel::joy_callback(const sensor_msgs::msg::Joy::SharedPtr rxdata)
         const double robot_angle_rad = robot_angle_deg * M_PI / 180.0;
 
         geometry_msgs::msg::Twist txdata;
-        txdata.linear.x = std::cos(robot_angle_rad) * body_vx - std::sin(robot_angle_rad) * body_vy;
-        txdata.linear.y = std::sin(robot_angle_rad) * body_vx + std::cos(robot_angle_rad) * body_vy;
+        txdata.linear.x = std::cos(robot_angle_rad) * body_vx + std::sin(robot_angle_rad) * body_vy;
+        txdata.linear.y = -std::sin(robot_angle_rad) * body_vx + std::cos(robot_angle_rad) * body_vy;
         txdata.linear.z = 0;
 
         txdata.angular.x = 0;
