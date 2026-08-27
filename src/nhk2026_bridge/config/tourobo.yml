@@ -14,9 +14,9 @@
 
     toggleDebounceSeconds: 0.05
 
-    holder_servo1_0 : 130
-    holder_servo1_1 : 88
-    holder_servo1_2 : 50
+    holder_servo1_0 : 50
+    holder_servo1_1 : 80
+    holder_servo1_2 : 110
     holder_servo3_0 : 20
     holder_servo3_1 : 62
 
