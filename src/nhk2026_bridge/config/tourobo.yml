@@ -8,7 +8,7 @@
     handRotation_speed: 120.0
     ballHolder_max: 0
     ballHolder_min: -820
-    ballHolder_speed: 330.0
+    ballHolder_speed: 400.0
     ejectionRpm_max: 10
     ejectionRpm_rate: 1.0
 
