@@ -28,6 +28,7 @@ private:
 
     void joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy);
     void emergent_stop_callback(const std_msgs::msg::Int32MultiArray::SharedPtr msg);
+    void unity_event_callback(const std_msgs::msg::Int32MultiArray::SharedPtr msg);
     void update_toggle_button(
         bool pressed, size_t index, uint8_t & output, uint8_t bit, const rclcpp::Time & stamp);
     bool check_toggle_button_debounce(
@@ -37,6 +38,7 @@ private:
 
     rclcpp::Subscription<sensor_msgs::msg::Joy>::SharedPtr joy_subscriber_;
     rclcpp::Subscription<std_msgs::msg::Int32MultiArray>::SharedPtr emergent_stop_subscriber_;
+    rclcpp::Subscription<std_msgs::msg::Int32MultiArray>::SharedPtr unity_event_subscriber_;
     rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::ByteMultiArray>::SharedPtr
         air_cylinder_publisher_;
     rclcpp_lifecycle::LifecyclePublisher<std_msgs::msg::Int32MultiArray>::SharedPtr

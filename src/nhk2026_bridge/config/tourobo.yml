@@ -31,7 +31,7 @@
     # sub_float_bridge_canid: [0x201, 0x202, 0x203, 0x211, 0x214, 0x220, 0x221]
     # CAN ID が決まり次第、以下のコメントを外して対応する ID を設定する
     sub_int_bridge_topic: ["robomasu", "ejection", "holder_servo"]
-    sub_int_bridge_canid: [0x230, 0x130, 0x401]
+    sub_int_bridge_canid: [0x230, 0x205, 0x401]
     sub_bytes_bridge_topic: ["air_cylinder"]
     sub_bytes_bridge_canid: [0x104]
 

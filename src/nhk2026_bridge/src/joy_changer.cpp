@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <functional>
 
+#include "lifecycle_msgs/msg/state.hpp"
+#include "lifecycle_msgs/msg/transition.hpp"
+
 using std::placeholders::_1;
 
 namespace
@@ -103,6 +106,8 @@ JoyChanger::CallbackReturn JoyChanger::on_configure(const rclcpp_lifecycle::Stat
         "joy", rclcpp::SystemDefaultsQoS(), std::bind(&JoyChanger::joy_callback, this, _1));
     emergent_stop_subscriber_ = this->create_subscription<std_msgs::msg::Int32MultiArray>(
         "emergent_stop", rclcpp::SystemDefaultsQoS(), std::bind(&JoyChanger::emergent_stop_callback, this, _1));
+    unity_event_subscriber_ = this->create_subscription<std_msgs::msg::Int32MultiArray>(
+        "UnityEvent", rclcpp::SystemDefaultsQoS(), std::bind(&JoyChanger::unity_event_callback, this, _1));
 
     RCLCPP_INFO(get_logger(), "on_configure() called. state: id=%u, label=%s",
         state.id(), state.label().c_str());
@@ -124,6 +129,36 @@ JoyChanger::CallbackReturn JoyChanger::on_activate(const rclcpp_lifecycle::State
 JoyChanger::CallbackReturn JoyChanger::on_deactivate(const rclcpp_lifecycle::State & state)
 {
     has_last_joy_stamp_ = false;
+
+    air_cylinder_state_ = 0;
+    holder_servo1_state_ = 0;
+    holder_servo3_state_ = 0;
+    hand_rotation_ = 0.0;
+    ballHolder_ = 0.0;
+    ejection_state_ = 0;
+
+    std_msgs::msg::ByteMultiArray air_cylinder_msg;
+    air_cylinder_msg.data = {air_cylinder_state_};
+    air_cylinder_publisher_->publish(air_cylinder_msg);
+
+    std_msgs::msg::Int32MultiArray holder_servo_msg;
+    holder_servo_msg.data = {
+        static_cast<int32_t>(holder_servo1_0_),
+        static_cast<int32_t>(holder_servo3_0_)
+    };
+    holder_servo_publisher_->publish(holder_servo_msg);
+
+    std_msgs::msg::Int32MultiArray robomasu_msg;
+    robomasu_msg.data = {
+        static_cast<int32_t>(hand_rotation_),
+        static_cast<int32_t>(ballHolder_)
+    };
+    robomasu_publisher_->publish(robomasu_msg);
+
+    std_msgs::msg::Int32MultiArray ejection_msg;
+    ejection_msg.data = {0, 0, 0};
+    ejection_publisher_->publish(ejection_msg);
+
     air_cylinder_publisher_->on_deactivate();
     holder_servo_publisher_->on_deactivate();
     robomasu_publisher_->on_deactivate();
@@ -137,6 +172,7 @@ JoyChanger::CallbackReturn JoyChanger::on_cleanup(const rclcpp_lifecycle::State 
 {
     joy_subscriber_.reset();
     emergent_stop_subscriber_.reset();
+    unity_event_subscriber_.reset();
     air_cylinder_publisher_.reset();
     holder_servo_publisher_.reset();
     robomasu_publisher_.reset();
@@ -157,6 +193,7 @@ JoyChanger::CallbackReturn JoyChanger::on_shutdown(const rclcpp_lifecycle::State
 {
     joy_subscriber_.reset();
     emergent_stop_subscriber_.reset();
+    unity_event_subscriber_.reset();
     air_cylinder_publisher_.reset();
     holder_servo_publisher_.reset();
     robomasu_publisher_.reset();
@@ -284,6 +321,19 @@ void JoyChanger::emergent_stop_callback(const std_msgs::msg::Int32MultiArray::Sh
         ejection_msg.data = {0, 0, 0};
         ejection_publisher_->publish(ejection_msg);
     }
+}
+
+void JoyChanger::unity_event_callback(const std_msgs::msg::Int32MultiArray::SharedPtr msg)
+{
+    if (msg->data.empty() || msg->data[0] <= 0) {
+        return;
+    }
+
+    if (this->get_current_state().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
+        return;
+    }
+
+    this->trigger_transition(lifecycle_msgs::msg::Transition::TRANSITION_DEACTIVATE);
 }
 
 void JoyChanger::update_toggle_button(
