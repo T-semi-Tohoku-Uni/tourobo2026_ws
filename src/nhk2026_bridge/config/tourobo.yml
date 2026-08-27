@@ -22,8 +22,8 @@
 
     pub_float_bridge_topic: ["angle_feedback"]
     pub_float_bridge_canid: [0x350]
-    # pub_int_bridge_topic: ["onedlidar","feedback_type"] 
-    # pub_int_bridge_canid: [0x401,0x103]  
+    pub_int_bridge_topic: ["emergent_stop"] 
+    pub_int_bridge_canid: [0x520]  
     # # pub_bytes_bridge_topic: ["test_b_p"]
     # # pub_bytes_bridge_canid: [0x402]
 

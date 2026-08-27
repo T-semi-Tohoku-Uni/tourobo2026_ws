@@ -101,6 +101,8 @@ JoyChanger::CallbackReturn JoyChanger::on_configure(const rclcpp_lifecycle::Stat
         "ejection", rclcpp::SystemDefaultsQoS());
     joy_subscriber_ = this->create_subscription<sensor_msgs::msg::Joy>(
         "joy", rclcpp::SystemDefaultsQoS(), std::bind(&JoyChanger::joy_callback, this, _1));
+    emergent_stop_subscriber_ = this->create_subscription<std_msgs::msg::Int32MultiArray>(
+        "emergent_stop", rclcpp::SystemDefaultsQoS(), std::bind(&JoyChanger::emergent_stop_callback, this, _1));
 
     RCLCPP_INFO(get_logger(), "on_configure() called. state: id=%u, label=%s",
         state.id(), state.label().c_str());
@@ -134,6 +136,7 @@ JoyChanger::CallbackReturn JoyChanger::on_deactivate(const rclcpp_lifecycle::Sta
 JoyChanger::CallbackReturn JoyChanger::on_cleanup(const rclcpp_lifecycle::State & state)
 {
     joy_subscriber_.reset();
+    emergent_stop_subscriber_.reset();
     air_cylinder_publisher_.reset();
     holder_servo_publisher_.reset();
     robomasu_publisher_.reset();
@@ -153,6 +156,7 @@ JoyChanger::CallbackReturn JoyChanger::on_error(const rclcpp_lifecycle::State & 
 JoyChanger::CallbackReturn JoyChanger::on_shutdown(const rclcpp_lifecycle::State & state)
 {
     joy_subscriber_.reset();
+    emergent_stop_subscriber_.reset();
     air_cylinder_publisher_.reset();
     holder_servo_publisher_.reset();
     robomasu_publisher_.reset();
@@ -244,6 +248,42 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
     holder_servo_publisher_->publish(holder_servo_msg);
     robomasu_publisher_->publish(robomasu_msg);
     ejection_publisher_->publish(ejection_msg);
+}
+
+void JoyChanger::emergent_stop_callback(const std_msgs::msg::Int32MultiArray::SharedPtr msg)
+{
+    if (msg->data.size() > 0 && msg->data[0] > 0) {
+        // Emergent stop signal received, reset all states
+        air_cylinder_state_ = 0;
+        holder_servo1_state_ = 0;
+        holder_servo3_state_ = 0;
+        hand_rotation_ = 0.0;
+        ballHolder_ = 0.0;
+        ejection_state_ = 0;
+
+        // Publish reset states
+        std_msgs::msg::ByteMultiArray air_cylinder_msg;
+        air_cylinder_msg.data = {air_cylinder_state_};
+        air_cylinder_publisher_->publish(air_cylinder_msg);
+
+        std_msgs::msg::Int32MultiArray holder_servo_msg;
+        holder_servo_msg.data = {
+            static_cast<int32_t>(holder_servo1_0_),
+            static_cast<int32_t>(holder_servo3_0_)
+        };
+        holder_servo_publisher_->publish(holder_servo_msg);
+
+        std_msgs::msg::Int32MultiArray robomasu_msg;
+        robomasu_msg.data = {
+            static_cast<int32_t>(hand_rotation_),
+            static_cast<int32_t>(ballHolder_)
+        };
+        robomasu_publisher_->publish(robomasu_msg);
+
+        std_msgs::msg::Int32MultiArray ejection_msg;
+        ejection_msg.data = {0, 0, 0};
+        ejection_publisher_->publish(ejection_msg);
+    }
 }
 
 void JoyChanger::update_toggle_button(
