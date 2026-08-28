@@ -1,4 +1,6 @@
 #include "joy2vel.hpp"
+#include "lifecycle_msgs/msg/state.hpp"
+#include "lifecycle_msgs/msg/transition.hpp"
 
 Joy2Vel::Joy2Vel()
 : rclcpp_lifecycle::LifecycleNode(std::string("joy_vel_converter"))
@@ -40,6 +42,12 @@ Joy2Vel::CallbackReturn Joy2Vel::on_configure(const rclcpp_lifecycle::State &sta
         std::string("angle_feedback"),
         rclcpp::SystemDefaultsQoS(),
         std::bind(&Joy2Vel::angle_feedback_callback, this, _1)
+    );
+
+    this->unity_event_subscriber = this->create_subscription<std_msgs::msg::Int32MultiArray>(
+        std::string("UnityEvent"),
+        rclcpp::SystemDefaultsQoS(),
+        std::bind(&Joy2Vel::unity_event_callback, this, _1)
     );
 
     RCLCPP_INFO(
@@ -91,6 +99,7 @@ Joy2Vel::CallbackReturn Joy2Vel::on_cleanup(const rclcpp_lifecycle::State &state
 {
     this->joy_subscriber.reset();
     this->angle_feedback_subscriber.reset();
+    this->unity_event_subscriber.reset();
     this->vel_publisher.reset();
     RCLCPP_INFO(
         get_logger(),
@@ -136,6 +145,7 @@ Joy2Vel::CallbackReturn Joy2Vel::on_shutdown(const rclcpp_lifecycle::State &stat
     }
     this->joy_subscriber.reset();
     this->angle_feedback_subscriber.reset();
+    this->unity_event_subscriber.reset();
     this->vel_publisher.reset();
     RCLCPP_INFO(
         get_logger(),
@@ -215,6 +225,18 @@ rcl_interfaces::msg::SetParametersResult Joy2Vel::parameters_callback(
     return result;
 }
 
+void Joy2Vel::unity_event_callback(const std_msgs::msg::Int32MultiArray::SharedPtr rxdata)
+{
+    if (rxdata->data.empty() || rxdata->data[0] <= 0) {
+        return;
+    }
+
+    if (this->get_current_state().id() != lifecycle_msgs::msg::State::PRIMARY_STATE_ACTIVE) {
+        return;
+    }
+
+    this->trigger_transition(lifecycle_msgs::msg::Transition::TRANSITION_DEACTIVATE);
+}
 int main(int argc, char *argv[])
 {
     rclcpp::init(argc, argv);
