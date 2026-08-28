@@ -13,6 +13,7 @@ namespace
 constexpr size_t kCrossButton = 0;
 constexpr size_t kCircleButton = 1;
 constexpr size_t kTriangleButton = 2;
+constexpr size_t kSquareButton = 3;
 constexpr size_t kL1Button = 4;
 constexpr size_t kR1Button = 5;
 constexpr size_t kCreateButton = 8;
@@ -24,6 +25,7 @@ constexpr size_t kAirCylinderCross = 1;
 constexpr size_t kHolderServoCreate = 2;
 constexpr size_t kHolderServoOption = 3;
 constexpr size_t kEjectionTriangle = 4;
+constexpr size_t kBallHolderSquare = 5;
 
 bool button_pressed(const sensor_msgs::msg::Joy & joy, size_t index)
 {
@@ -50,13 +52,14 @@ JoyChanger::JoyChanger()
     ballHolder_min_(0),
     ballHolder_speed_(0.0),
     ballHolder_(0.0),
+    ballHolderUp_(true),
     ejectionRpm_max_(0),
     ejection_state_(0),
     air_cylinder_state_(0),
     holder_servo1_state_(0),
     holder_servo3_state_(0),
-    button_was_pressed_{false, false, false, false, false},
-    has_button_release_stamp_{false, false, false, false, false}
+    button_was_pressed_{false, false, false, false, false, false},
+    has_button_release_stamp_{false, false, false, false, false, false}
 {
     this->declare_parameter<int>("handRotation_max", 20);
     this->declare_parameter<int>("handRotation_min", -70);
@@ -135,6 +138,7 @@ JoyChanger::CallbackReturn JoyChanger::on_deactivate(const rclcpp_lifecycle::Sta
     holder_servo3_state_ = 0;
     hand_rotation_ = 0.0;
     ballHolder_ = 0.0;
+    ballHolderUp_ = true;
     ejection_state_ = 0;
 
     std_msgs::msg::ByteMultiArray air_cylinder_msg;
@@ -226,15 +230,6 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
         holder_servo3_state_ = (holder_servo3_state_ + 1) % 2; // rotate through 0, 1
     }
 
-    const int32_t holder_servo1_value = (holder_servo1_state_ == 0) ? holder_servo1_0_ :
-                                    (holder_servo1_state_ == 1) ? holder_servo1_1_ : holder_servo1_2_;
-    const int32_t holder_servo3_value = (holder_servo3_state_ == 0) ? holder_servo3_0_ : holder_servo3_1_;
-    std_msgs::msg::Int32MultiArray holder_servo_msg;
-    holder_servo_msg.data = {
-        holder_servo1_value,
-        holder_servo3_value
-    };
-
     const bool l1 = button_pressed(*joy, kL1Button);
     const bool r1 = button_pressed(*joy, kR1Button);
     const int32_t hand_direction = l1 == r1 ? 0 : (l1 ? 1 : -1);
@@ -259,6 +254,23 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
     const double ballHolder_max = std::max(
         static_cast<double>(ballHolder_min_), static_cast<double>(ballHolder_max_));
     ballHolder_ = std::clamp(ballHolder_, ballHolder_min, ballHolder_max);
+
+    const bool ball_holder_up_down_event = check_toggle_button_debounce(
+        button_pressed(*joy, kSquareButton), kBallHolderSquare, joy_stamp);
+    if (ball_holder_up_down_event) {
+        BallHolderUpDownEvent();
+    } else {
+        ballHolderUp_ = ballHolder_ > (ballHolder_min + ballHolder_max) / 2.0;
+    }
+
+    const int32_t holder_servo1_value = (holder_servo1_state_ == 0) ? holder_servo1_0_ :
+                                    (holder_servo1_state_ == 1) ? holder_servo1_1_ : holder_servo1_2_;
+    const int32_t holder_servo3_value = (holder_servo3_state_ == 0) ? holder_servo3_0_ : holder_servo3_1_;
+    std_msgs::msg::Int32MultiArray holder_servo_msg;
+    holder_servo_msg.data = {
+        holder_servo1_value,
+        holder_servo3_value
+    };
 
     std_msgs::msg::Int32MultiArray robomasu_msg;
     robomasu_msg.data = {
@@ -296,6 +308,7 @@ void JoyChanger::emergent_stop_callback(const std_msgs::msg::Int32MultiArray::Sh
         holder_servo3_state_ = 0;
         hand_rotation_ = 0.0;
         ballHolder_ = 0.0;
+        ballHolderUp_ = true;
         ejection_state_ = 0;
 
         // Publish reset states
@@ -352,6 +365,17 @@ void JoyChanger::update_toggle_button(
         has_button_release_stamp_[index] = true;
     }
     button_was_pressed_[index] = pressed;
+}
+
+void JoyChanger::BallHolderUpDownEvent()
+{
+    ballHolderUp_ = !ballHolderUp_;
+    if (ballHolderUp_) {
+        holder_servo1_state_ = 1;
+        ballHolder_ = static_cast<double>(ballHolder_max_ - 200);
+    } else {
+        ballHolder_ = static_cast<double>(ballHolder_min_ + 200);
+    }
 }
 
 // This function is used to check if the toggle button has been pressed and released. updata_toggle_button()と同じ処理を行うが、戻り値でトグルボタンが押されたかどうかを返す

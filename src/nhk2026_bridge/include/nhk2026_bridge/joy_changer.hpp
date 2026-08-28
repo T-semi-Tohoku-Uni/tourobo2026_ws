@@ -33,6 +33,7 @@ private:
         bool pressed, size_t index, uint8_t & output, uint8_t bit, const rclcpp::Time & stamp);
     bool check_toggle_button_debounce(
         bool pressed, size_t index, const rclcpp::Time & stamp);
+    void BallHolderUpDownEvent();
     rcl_interfaces::msg::SetParametersResult parameters_callback(
         const std::vector<rclcpp::Parameter> & parameters);
 
@@ -58,6 +59,7 @@ private:
     int32_t ballHolder_min_;
     double ballHolder_speed_;
     double ballHolder_;
+    bool ballHolderUp_;
     int32_t ejectionRpm_max_;
     double ejectionRpm_rate_;
     uint8_t ejection_state_;
@@ -70,9 +72,9 @@ private:
     uint32_t holder_servo3_0_;
     uint32_t holder_servo3_1_;
 
-    std::array<bool, 5> button_was_pressed_;
-    std::array<rclcpp::Time, 5> last_button_release_stamp_;
-    std::array<bool, 5> has_button_release_stamp_;
+    std::array<bool, 6> button_was_pressed_;
+    std::array<rclcpp::Time, 6> last_button_release_stamp_;
+    std::array<bool, 6> has_button_release_stamp_;
 
     double toggleDebounceSeconds_ = 0.1;
 
