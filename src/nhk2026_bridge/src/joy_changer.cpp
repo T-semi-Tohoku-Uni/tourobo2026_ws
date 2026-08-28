@@ -22,10 +22,37 @@ constexpr size_t kDpadVerticalAxis = 7;
 
 constexpr size_t kAirCylinderCircle = 0;
 constexpr size_t kAirCylinderCross = 1;
-constexpr size_t kHolderServoCreate = 2;
-constexpr size_t kHolderServoOption = 3;
-constexpr size_t kEjectionTriangle = 4;
+constexpr size_t kHolderServoOption = 2;
+constexpr size_t kEjectionCreate = 3;
+constexpr size_t kStoringTasksTriangle = 4;
 constexpr size_t kBallHolderSquare = 5;
+
+enum class StoringTaskType
+{
+    kServo1,
+    kHolder,
+    kHandPush,
+    kHandRotate,
+    kHandCatch,
+};
+
+struct StoringTask
+{
+    double time;
+    StoringTaskType task_type;
+    int32_t angle;
+};
+
+constexpr std::array<StoringTask, 8> kStoringTasks = {{
+    {0.0, StoringTaskType::kServo1, 0},
+    {0.0, StoringTaskType::kHolder, -850},
+    {0.0, StoringTaskType::kHandPush, 0},
+    {0.0, StoringTaskType::kHandRotate, 40},
+    {1.0, StoringTaskType::kServo1, 1},
+    {1.4, StoringTaskType::kHandCatch, 0},
+    {1.8, StoringTaskType::kHolder, -300},
+    {1.8, StoringTaskType::kHandRotate, 40},
+}};
 
 bool button_pressed(const sensor_msgs::msg::Joy & joy, size_t index)
 {
@@ -48,6 +75,8 @@ JoyChanger::JoyChanger()
     handRotation_speed_(0.0),
     hand_rotation_(0.0),
     has_last_joy_stamp_(false),
+    next_storing_task_index_(0),
+    storing_tasks_active_(false),
     ballHolder_max_(0),
     ballHolder_min_(0),
     ballHolder_speed_(0.0),
@@ -120,6 +149,8 @@ JoyChanger::CallbackReturn JoyChanger::on_configure(const rclcpp_lifecycle::Stat
 JoyChanger::CallbackReturn JoyChanger::on_activate(const rclcpp_lifecycle::State & state)
 {
     has_last_joy_stamp_ = false;
+    storing_tasks_active_ = false;
+    next_storing_task_index_ = 0;
     air_cylinder_publisher_->on_activate();
     holder_servo_publisher_->on_activate();
     robomasu_publisher_->on_activate();
@@ -132,6 +163,8 @@ JoyChanger::CallbackReturn JoyChanger::on_activate(const rclcpp_lifecycle::State
 JoyChanger::CallbackReturn JoyChanger::on_deactivate(const rclcpp_lifecycle::State & state)
 {
     has_last_joy_stamp_ = false;
+    storing_tasks_active_ = false;
+    next_storing_task_index_ = 0;
 
     air_cylinder_state_ = 0;
     holder_servo1_state_ = 0;
@@ -218,16 +251,16 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
         button_pressed(*joy, kCircleButton), kAirCylinderCircle, air_cylinder_state_, 0, joy_stamp);
     update_toggle_button(
         button_pressed(*joy, kCrossButton), kAirCylinderCross, air_cylinder_state_, 1, joy_stamp);
-    std_msgs::msg::ByteMultiArray air_cylinder_msg;
-    air_cylinder_msg.data = {air_cylinder_state_};
-
-        if (check_toggle_button_debounce(
-            button_pressed(*joy, kCreateButton), kHolderServoCreate, joy_stamp)) {
-        holder_servo1_state_ = (holder_servo1_state_ + 1) % 3; // rotate through 0, 1, 2
-    }
     if (check_toggle_button_debounce(
             button_pressed(*joy, kOptionButton), kHolderServoOption, joy_stamp)) {
-        holder_servo3_state_ = (holder_servo3_state_ + 1) % 2; // rotate through 0, 1
+        holder_servo1_state_ = (holder_servo1_state_ + 1) % 3; // rotate through 0, 1, 2
+    }
+
+    if (check_toggle_button_debounce(
+            button_pressed(*joy, kTriangleButton), kStoringTasksTriangle, joy_stamp)) {
+        storing_tasks_start_stamp_ = joy_stamp;
+        next_storing_task_index_ = 0;
+        storing_tasks_active_ = true;
     }
 
     const bool l1 = button_pressed(*joy, kL1Button);
@@ -259,9 +292,16 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
         button_pressed(*joy, kSquareButton), kBallHolderSquare, joy_stamp);
     if (ball_holder_up_down_event) {
         BallHolderUpDownEvent();
-    } else {
+    }
+
+    storingTasks(joy_stamp);
+
+    if (!ball_holder_up_down_event) {
         ballHolderUp_ = ballHolder_ > (ballHolder_min + ballHolder_max) / 2.0;
     }
+
+    std_msgs::msg::ByteMultiArray air_cylinder_msg;
+    air_cylinder_msg.data = {air_cylinder_state_};
 
     const int32_t holder_servo1_value = (holder_servo1_state_ == 0) ? holder_servo1_0_ :
                                     (holder_servo1_state_ == 1) ? holder_servo1_1_ : holder_servo1_2_;
@@ -279,7 +319,7 @@ void JoyChanger::joy_callback(const sensor_msgs::msg::Joy::SharedPtr joy)
     };
 
     if (check_toggle_button_debounce(
-            button_pressed(*joy, kTriangleButton), kEjectionTriangle, joy_stamp)) {
+            button_pressed(*joy, kCreateButton), kEjectionCreate, joy_stamp)) {
         ejection_state_ = (ejection_state_ + 1) % 2; // toggle between 0 and 1
     }
     
@@ -303,6 +343,8 @@ void JoyChanger::emergent_stop_callback(const std_msgs::msg::Int32MultiArray::Sh
 {
     if (msg->data.size() > 0 && msg->data[0] > 0) {
         // Emergent stop signal received, reset all states
+        storing_tasks_active_ = false;
+        next_storing_task_index_ = 0;
         air_cylinder_state_ = 0;
         holder_servo1_state_ = 0;
         holder_servo3_state_ = 0;
@@ -376,6 +418,41 @@ void JoyChanger::BallHolderUpDownEvent()
     } else {
         ballHolder_ = static_cast<double>(ballHolder_min_ + 200);
     }
+}
+
+void JoyChanger::storingTasks(const rclcpp::Time & stamp)
+{
+    if (!storing_tasks_active_) {
+        return;
+    }
+
+    const double elapsed_seconds = (stamp - storing_tasks_start_stamp_).seconds();
+    while (next_storing_task_index_ < kStoringTasks.size() &&
+        elapsed_seconds >= kStoringTasks[next_storing_task_index_].time) {
+        const StoringTask & task = kStoringTasks[next_storing_task_index_];
+        switch (task.task_type) {
+            case StoringTaskType::kServo1:
+                holder_servo1_state_ = static_cast<uint8_t>(task.angle);
+                break;
+            case StoringTaskType::kHolder:
+                ballHolder_ = static_cast<double>(task.angle);
+                break;
+            case StoringTaskType::kHandPush:
+                air_cylinder_state_ = static_cast<uint8_t>(
+                    (air_cylinder_state_ & ~0x02U) | (task.angle != 0 ? 0x02U : 0x00U));
+                break;
+            case StoringTaskType::kHandRotate:
+                hand_rotation_ = static_cast<double>(task.angle);
+                break;
+            case StoringTaskType::kHandCatch:
+                air_cylinder_state_ = static_cast<uint8_t>(
+                    (air_cylinder_state_ & ~0x01U) | (task.angle != 0 ? 0x01U : 0x00U));
+                break;
+        }
+        ++next_storing_task_index_;
+    }
+
+    storing_tasks_active_ = next_storing_task_index_ < kStoringTasks.size();
 }
 
 // This function is used to check if the toggle button has been pressed and released. updata_toggle_button()と同じ処理を行うが、戻り値でトグルボタンが押されたかどうかを返す

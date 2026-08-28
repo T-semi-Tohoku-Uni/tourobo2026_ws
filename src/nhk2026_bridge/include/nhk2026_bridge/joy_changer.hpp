@@ -34,6 +34,7 @@ private:
     bool check_toggle_button_debounce(
         bool pressed, size_t index, const rclcpp::Time & stamp);
     void BallHolderUpDownEvent();
+    void storingTasks(const rclcpp::Time & stamp);
     rcl_interfaces::msg::SetParametersResult parameters_callback(
         const std::vector<rclcpp::Parameter> & parameters);
 
@@ -55,6 +56,9 @@ private:
     double hand_rotation_;
     rclcpp::Time last_joy_stamp_;
     bool has_last_joy_stamp_;
+    rclcpp::Time storing_tasks_start_stamp_;
+    size_t next_storing_task_index_;
+    bool storing_tasks_active_;
     int32_t ballHolder_max_;
     int32_t ballHolder_min_;
     double ballHolder_speed_;
