@@ -158,8 +158,9 @@ Joy2Vel::CallbackReturn Joy2Vel::on_shutdown(const rclcpp_lifecycle::State &stat
 void Joy2Vel::joy_callback(const sensor_msgs::msg::Joy::SharedPtr rxdata)
 {
     if (this->vel_publisher->is_activated()) {
-        const double body_vx = -rxdata->axes[0] * max_vx/* - rxdata->axes[6]*max_button_vx*/;
-        const double body_vy =  rxdata->axes[1] * max_vy/* + rxdata->axes[7]*max_button_vy*/;
+        const double coefficient = rxdata->buttons[12] ? 0.4 : 1.0; // R3 button pressed
+        const double body_vx = -rxdata->axes[0] * max_vx * coefficient/* - rxdata->axes[6]*max_button_vx*/;
+        const double body_vy =  rxdata->axes[1] * max_vy * coefficient/* + rxdata->axes[7]*max_button_vy*/;
         const double robot_angle_rad = robot_angle_deg * M_PI / 180.0;
 
         geometry_msgs::msg::Twist txdata;
